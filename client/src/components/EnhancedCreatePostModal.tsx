@@ -51,21 +51,23 @@ export function EnhancedCreatePostModal({ isOpen, onClose, onPostCreated }: Enha
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).slice(0, 3 - images.length).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImages(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    const newFiles = Array.from(files).slice(0, 3 - imageFiles.length);
+    
+    // Generate previews
+    const previewPromises = newFiles.map(file => fileToDataURL(file));
+    const previews = await Promise.all(previewPromises);
+    
+    setImageFiles(prev => [...prev, ...newFiles]);
+    setImagePreviews(prev => [...prev, ...previews]);
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const addTag = () => {
