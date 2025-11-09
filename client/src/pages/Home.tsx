@@ -34,10 +34,38 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadPosts();
+    if (!currentUser) return;
+
+    // Set up real-time listener for posts
+    const postsQuery = query(
+      collection(db, "posts"),
+      orderBy("createdAt", "desc"),
+      limit(20)
+    );
+
+    const unsubscribePosts = onSnapshot(postsQuery, async (snapshot) => {
+      const postsWithAuthors = await Promise.all(
+        snapshot.docs.map(async (postDoc) => {
+          const postData = { id: postDoc.id, ...postDoc.data() } as Post;
+          const authorDoc = await getDoc(doc(db, "users", postData.authorId));
+          const author = authorDoc.exists() ? { id: authorDoc.id, ...authorDoc.data() } as User : undefined;
+          return { ...postData, author };
+        })
+      );
+      setPosts(postsWithAuthors);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error loading posts:", error);
+      setLoading(false);
+    });
+
     loadTodayMood();
     loadGlobalEmotions();
     checkMoodTime();
+
+    return () => {
+      unsubscribePosts();
+    };
   }, [currentUser]);
 
   const loadPosts = async () => {
