@@ -8,7 +8,7 @@ import MoodCheckPopup from "@/components/MoodCheckPopup";
 import { EnhancedCreatePostModal } from "@/components/EnhancedCreatePostModal";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, setDoc, where } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, setDoc, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getRandomSlogan } from "@/lib/emotion-slogans";
 import { formatDistanceToNow } from "date-fns";
