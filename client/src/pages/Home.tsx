@@ -69,29 +69,8 @@ export default function Home() {
   }, [currentUser]);
 
   const loadPosts = async () => {
-    try {
-      const postsQuery = query(
-        collection(db, "posts"),
-        orderBy("createdAt", "desc"),
-        limit(20)
-      );
-      const snapshot = await getDocs(postsQuery);
-      
-      const postsWithAuthors = await Promise.all(
-        snapshot.docs.map(async (postDoc) => {
-          const postData = { id: postDoc.id, ...postDoc.data() } as Post;
-          const authorDoc = await getDoc(doc(db, "users", postData.authorId));
-          const author = authorDoc.exists() ? { id: authorDoc.id, ...authorDoc.data() } as User : undefined;
-          return { ...postData, author };
-        })
-      );
-
-      setPosts(postsWithAuthors);
-    } catch (error) {
-      console.error("Error loading posts:", error);
-    } finally {
-      setLoading(false);
-    }
+    // This function is no longer needed as we use real-time listeners
+    // Kept for compatibility with onPostCreated callback
   };
 
   const loadTodayMood = async () => {
