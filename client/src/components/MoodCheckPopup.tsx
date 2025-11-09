@@ -42,31 +42,19 @@ export default function MoodCheckPopup({
   onSaveMood,
   globalEmotions = []
 }: MoodCheckPopupProps) {
-  const [step, setStep] = useState<"select" | "forecast" | "entry" | "choice">("select");
+  const [step, setStep] = useState<"select" | "entry">("select");
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleEmotionSelect = (emotion: EmotionType) => {
     setSelectedEmotion(emotion);
-    setStep("forecast");
-  };
-
-  const handleSkip = () => {
-    onClose();
-    resetState();
-  };
-
-  const handleContinueToEntry = () => {
     setStep("entry");
   };
 
-  const handleContinueToChoice = () => {
-    const trimmedReason = reason.trim();
-    if (!trimmedReason || trimmedReason.length < 3) {
-      return; // Require at least 3 characters
-    }
-    setStep("choice");
+  const handleClose = () => {
+    onClose();
+    resetState();
   };
 
   const handleSave = async (shouldPost: boolean) => {
@@ -74,7 +62,7 @@ export default function MoodCheckPopup({
     
     setSaving(true);
     try {
-      await onSaveMood(selectedEmotion, reason, shouldPost);
+      await onSaveMood(selectedEmotion, reason.trim() || "Just feeling this way", shouldPost);
       onClose();
       resetState();
     } catch (error) {
@@ -89,12 +77,6 @@ export default function MoodCheckPopup({
     setSelectedEmotion(null);
     setReason("");
   };
-
-  const top3Emotions = globalEmotions.slice(0, 3);
-  const userEmotionInTop3 = selectedEmotion && top3Emotions.some(e => e.emotion === selectedEmotion);
-  const displayEmotions = userEmotionInTop3 
-    ? top3Emotions 
-    : [...top3Emotions, { emotion: selectedEmotion!, count: 0, percentage: 0 }];
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleSkip()}>
