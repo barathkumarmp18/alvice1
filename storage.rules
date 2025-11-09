@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidSize() {
+      // Max 10MB
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // User profile images
+    match /profile-images/{userId}/{fileName} {
+      // Anyone can read profile images
+      allow read: if true;
+      
+      // Users can upload their own profile images
+      allow write: if isAuthenticated() 
+                   && request.auth.uid == userId 
+                   && isImageFile() 
+                   && isValidSize();
+    }
+    
+    // Post images
+    match /post-images/{userId}/{postId}/{fileName} {
+      // Anyone can read post images
+      allow read: if true;
+      
+      // Users can upload images for their own posts
+      allow write: if isAuthenticated() 
+                   && request.auth.uid == userId 
+                   && isImageFile() 
+                   && isValidSize();
+    }
+    
+    // Tribe cover images
+    match /tribe-images/{tribeId}/{fileName} {
+      // Anyone can read tribe images
+      allow read: if true;
+      
+      // Authenticated users can upload tribe images (will be validated at app level)
+      allow write: if isAuthenticated() 
+                   && isImageFile() 
+                   && isValidSize();
+    }
+  }
+}
