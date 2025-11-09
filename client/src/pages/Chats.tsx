@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import { collection, query, where, getDocs, addDoc, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, orderBy, limit, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { wsClient } from "@/lib/websocket-client";
 import { formatDistanceToNow } from "date-fns";
