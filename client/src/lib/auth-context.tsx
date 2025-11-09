@@ -71,31 +71,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    
-    // Check if user document exists, if not create basic profile
-    const userDoc = await getDoc(doc(db, "users", result.user.uid));
-    if (!userDoc.exists()) {
-      const newUser: Omit<User, 'id'> = {
-        email: result.user.email!,
-        displayName: result.user.displayName || "User",
-        username: result.user.email!.split('@')[0],
-        photoURL: result.user.photoURL || undefined,
-        role: "explorer",
-        interests: [],
-        contentPreferences: [],
-        followers: [],
-        following: [],
-        createdAt: new Date().toISOString(),
-        profileSetupComplete: false,
-        settings: {
-          diaryPublic: true,
-          allowAnonymousMessages: true,
-          multiAccountIds: [],
-        },
-      };
-      await setDoc(doc(db, "users", result.user.uid), { ...newUser, id: result.user.uid });
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if user document exists, if not create basic profile
+      const userDoc = await getDoc(doc(db, "users", result.user.uid));
+      if (!userDoc.exists()) {
+        const newUser: Omit<User, 'id'> = {
+          email: result.user.email!,
+          displayName: result.user.displayName || "User",
+          username: result.user.email!.split('@')[0],
+          photoURL: result.user.photoURL || undefined,
+          role: "explorer",
+          interests: [],
+          contentPreferences: [],
+          followers: [],
+          following: [],
+          createdAt: new Date().toISOString(),
+          profileSetupComplete: false,
+          settings: {
+            diaryPublic: true,
+            allowAnonymousMessages: true,
+            multiAccountIds: [],
+          },
+        };
+        await setDoc(doc(db, "users", result.user.uid), { ...newUser, id: result.user.uid });
+      }
+    } catch (error: any) {
+      const errorMessage = handleFirebaseError(error);
+      console.error('Google sign-in error:', errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
