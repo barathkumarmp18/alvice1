@@ -140,7 +140,8 @@ export function EnhancedCreatePostModal({ isOpen, onClose, onPostCreated }: Enha
     setPostType("post");
     setTitle("");
     setContent("");
-    setImages([]);
+    setImageFiles([]);
+    setImagePreviews([]);
     setSelectedTribes([]);
     setTags([]);
     setTagInput("");
