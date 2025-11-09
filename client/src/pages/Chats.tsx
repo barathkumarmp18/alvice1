@@ -184,36 +184,32 @@ export default function Chats() {
       <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-md border-b border-border">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <h1 className="text-2xl font-display font-bold">Chats</h1>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowAnonymousCenter(!showAnonymousCenter)}
-            className="gap-2 hover-elevate active-elevate-2"
-            data-testid="button-anonymous-center"
-          >
-            <Users className="h-4 w-4" />
-            Anonymous Center
-          </Button>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        {/* Anonymous link */}
-        <Card className="p-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <p className="text-sm font-medium mb-1">Your Anonymous Message Link</p>
-              <p className="text-xs text-muted-foreground truncate">{anonymousLink}</p>
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+        {/* Anonymous Center - Moved below header */}
+        <Card className="p-4 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-500" />
+              <h3 className="font-semibold">Anonymous Center</h3>
             </div>
-            <Button
-              size="sm"
-              onClick={copyAnonymousLink}
-              className="gap-2 hover-elevate active-elevate-2"
-              data-testid="button-copy-link"
-            >
-              <Link2 className="h-4 w-4" />
-              Copy Link
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">Your Anonymous Message Link</p>
+                <p className="text-xs text-muted-foreground truncate">{anonymousLink}</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={copyAnonymousLink}
+                className="gap-2 hover-elevate active-elevate-2"
+                data-testid="button-copy-link"
+              >
+                <Link2 className="h-4 w-4" />
+                Copy Link
+              </Button>
+            </div>
           </div>
         </Card>
 
