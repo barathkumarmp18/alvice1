@@ -39,9 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = async (uid: string) => {
-    const userDoc = await getDoc(doc(db, "users", uid));
-    if (userDoc.exists()) {
-      setUserData(userDoc.data() as User);
+    try {
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        setUserData(userDoc.data() as User);
+      }
+    } catch (error: any) {
+      console.error('Error fetching user data:', handleFirebaseError(error));
+      // Don't throw - allow app to continue, user can retry
     }
   };
 
