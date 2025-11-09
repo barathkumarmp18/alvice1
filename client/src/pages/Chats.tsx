@@ -128,26 +128,8 @@ export default function Chats() {
   };
 
   const loadMessages = async (userId: string) => {
-    if (!currentUser) return;
-
-    try {
-      const messagesQuery = query(
-        collection(db, "messages"),
-        orderBy("createdAt", "asc")
-      );
-      const snapshot = await getDocs(messagesQuery);
-      
-      const chatMessages = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as Message))
-        .filter(msg => 
-          (msg.senderId === currentUser.uid && msg.receiverId === userId) ||
-          (msg.senderId === userId && msg.receiverId === currentUser.uid)
-        );
-
-      setMessages(chatMessages);
-    } catch (error) {
-      console.error("Error loading messages:", error);
-    }
+    // This function is no longer needed as we use real-time listeners
+    // Kept for compatibility
   };
 
   const generateAnonymousLink = async () => {
