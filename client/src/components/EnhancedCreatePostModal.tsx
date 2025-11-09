@@ -192,7 +192,7 @@ export function EnhancedCreatePostModal({ isOpen, onClose, onPostCreated }: Enha
                       onChange={handleImageUpload}
                       className="hidden"
                       id="image-upload"
-                      disabled={images.length >= 3}
+                      disabled={imageFiles.length >= 3}
                       data-testid="input-image-upload"
                     />
                     <label htmlFor="image-upload" className="cursor-pointer">
@@ -200,15 +200,15 @@ export function EnhancedCreatePostModal({ isOpen, onClose, onPostCreated }: Enha
                         <Upload className="h-8 w-8 text-muted-foreground" />
                         <p className="text-sm font-medium">Upload images</p>
                         <p className="text-xs text-muted-foreground">
-                          {images.length}/3 images • PNG, JPG up to 10MB
+                          {imageFiles.length}/3 images • PNG, JPG up to 10MB
                         </p>
                       </div>
                     </label>
                   </div>
 
-                  {images.length > 0 && (
+                  {imagePreviews.length > 0 && (
                     <div className="grid grid-cols-3 gap-2">
-                      {images.map((img, index) => (
+                      {imagePreviews.map((img, index) => (
                         <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                           <img src={img} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
                           <button
