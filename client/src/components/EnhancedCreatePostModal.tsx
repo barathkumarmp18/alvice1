@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { collection, addDoc, query, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { uploadPostImages, fileToDataURL } from "@/lib/storage";
 import type { Tribe } from "@shared/schema";
 
 interface EnhancedCreatePostModalProps {
