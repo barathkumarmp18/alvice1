@@ -79,21 +79,19 @@ export default function MoodCheckPopup({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleSkip()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-xl" data-testid="dialog-mood-check">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-display">How are you feeling?</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSkip}
-              data-testid="button-skip-mood"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </DialogHeader>
+        <div className="absolute right-4 top-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            className="h-8 w-8"
+            data-testid="button-close-mood"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
         <AnimatePresence mode="wait">
           {step === "select" && (
@@ -104,7 +102,8 @@ export default function MoodCheckPopup({
               exit={{ opacity: 0, scale: 0.95 }}
               className="space-y-6 py-6"
             >
-              <p className="text-center text-muted-foreground">
+              <h3 className="text-2xl font-display font-semibold text-center">How are you feeling?</h3>
+              <p className="text-center text-muted-foreground text-sm">
                 Select an emoji that represents your current mood
               </p>
               <div className="grid grid-cols-5 gap-4">
@@ -127,84 +126,6 @@ export default function MoodCheckPopup({
             </motion.div>
           )}
 
-          {step === "forecast" && selectedEmotion && (
-            <motion.div
-              key="forecast"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 py-6"
-            >
-              <div className="flex items-center justify-center">
-                <motion.div
-                  initial={{ scale: 1 }}
-                  animate={{ scale: 0.6 }}
-                  transition={{ duration: 0.5 }}
-                  className="text-6xl"
-                >
-                  {EMOTION_EMOJIS[selectedEmotion]}
-                </motion.div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-center font-semibold text-lg">
-                  Global Emotion Forecast
-                </h3>
-                <p className="text-center text-sm text-muted-foreground">
-                  See how the world is feeling right now
-                </p>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {displayEmotions.slice(0, 4).map((emotionData, index) => (
-                    <div
-                      key={emotionData.emotion}
-                      className={`p-4 rounded-xl border ${
-                        emotionData.emotion === selectedEmotion
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-card"
-                      }`}
-                      data-testid={`forecast-emotion-${emotionData.emotion}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">
-                          {EMOTION_EMOJIS[emotionData.emotion]}
-                        </span>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium capitalize">
-                            {emotionData.emotion}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {emotionData.percentage > 0 
-                              ? `${emotionData.percentage}% of users`
-                              : "You're unique!"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleSkip}
-                  className="flex-1"
-                  data-testid="button-skip-entry"
-                >
-                  Skip
-                </Button>
-                <Button
-                  onClick={handleContinueToEntry}
-                  className="flex-1"
-                  data-testid="button-continue-entry"
-                >
-                  Tell us more
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
           {step === "entry" && selectedEmotion && (
             <motion.div
               key="entry"
@@ -214,19 +135,17 @@ export default function MoodCheckPopup({
               className="space-y-6 py-6"
             >
               <div className="text-center space-y-2">
-                <span className="text-5xl">{EMOTION_EMOJIS[selectedEmotion]}</span>
+                <span className="text-6xl">{EMOTION_EMOJIS[selectedEmotion]}</span>
                 <h3 className="font-semibold text-lg">
                   {EMOTION_PROMPTS[selectedEmotion]}
                 </h3>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reason">Share your thoughts</Label>
                 <Textarea
-                  id="reason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Write about how you're feeling..."
+                  placeholder="Write about how you're feeling... (optional)"
                   className="min-h-32 resize-none"
                   maxLength={500}
                   data-testid="input-mood-reason"
@@ -236,72 +155,31 @@ export default function MoodCheckPopup({
                 </p>
               </div>
 
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleSkip}
-                  className="flex-1"
-                  data-testid="button-skip-reason"
-                >
-                  Skip
-                </Button>
-                <Button
-                  onClick={handleContinueToChoice}
-                  disabled={!reason.trim() || reason.trim().length < 3}
-                  className="flex-1"
-                  data-testid="button-continue-choice"
-                >
-                  Continue
-                </Button>
-              </div>
-              {reason.trim().length > 0 && reason.trim().length < 3 && (
-                <p className="text-xs text-destructive text-center">
-                  Please write at least 3 characters
-                </p>
-              )}
-            </motion.div>
-          )}
-
-          {step === "choice" && selectedEmotion && (
-            <motion.div
-              key="choice"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 py-6"
-            >
-              <div className="text-center space-y-2">
-                <span className="text-5xl">{EMOTION_EMOJIS[selectedEmotion]}</span>
-                <h3 className="font-semibold text-lg">Where should this go?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Keep it private or share with the community
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => handleSave(false)}
-                  disabled={saving}
-                  className="h-24 flex flex-col gap-2"
-                  data-testid="button-save-diary"
-                >
-                  <span className="text-2xl">📔</span>
-                  <span>Save to Diary</span>
-                  <span className="text-xs text-muted-foreground">Private entry</span>
-                </Button>
-                <Button
-                  onClick={() => handleSave(true)}
-                  disabled={saving}
-                  className="h-24 flex flex-col gap-2"
-                  data-testid="button-post-public"
-                >
-                  <span className="text-2xl">🌍</span>
-                  <span>Post Publicly</span>
-                  <span className="text-xs text-muted-foreground">
-                    Share your feeling
-                  </span>
-                </Button>
+              <div className="space-y-3">
+                <p className="text-sm text-center text-muted-foreground">Save to:</p>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSave(false)}
+                    disabled={saving}
+                    className="flex-1 h-16 flex flex-col gap-1"
+                    data-testid="button-save-diary"
+                  >
+                    <span className="text-xl">📔</span>
+                    <span className="text-xs">Diary</span>
+                    <span className="text-xs text-muted-foreground">Private</span>
+                  </Button>
+                  <Button
+                    onClick={() => handleSave(true)}
+                    disabled={saving}
+                    className="flex-1 h-16 flex flex-col gap-1 bg-gradient-to-r from-emotion-happiness to-emotion-excitement"
+                    data-testid="button-post-public"
+                  >
+                    <span className="text-xl">🌍</span>
+                    <span className="text-xs">Post</span>
+                    <span className="text-xs opacity-90">Public</span>
+                  </Button>
+                </div>
               </div>
             </motion.div>
           )}
