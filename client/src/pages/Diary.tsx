@@ -236,25 +236,24 @@ function FlickeringMoodCell({
   isCurrentMonth: boolean;
   onClick: () => void;
 }) {
-  const [showEmoji, setShowEmoji] = useState(true);
+  const [wavePhase, setWavePhase] = useState(0);
 
   useEffect(() => {
-    // Random flickering between date and emoji (slow, random intervals)
-    const startFlickering = () => {
-      const nextInterval = Math.random() * 2000 + 1500; // 1.5-3.5 seconds
-      setTimeout(() => {
-        setShowEmoji(prev => !prev);
-        startFlickering();
-      }, nextInterval);
-    };
+    // Slow wave animation - changes phase gradually
+    const interval = setInterval(() => {
+      setWavePhase(prev => (prev + 1) % 4);
+    }, 2000); // 2 seconds per phase
 
-    startFlickering();
+    return () => clearInterval(interval);
   }, []);
+
+  const emojiScale = wavePhase === 0 ? 1.1 : wavePhase === 1 ? 1.05 : wavePhase === 2 ? 1.0 : 1.05;
+  const emojiOpacity = wavePhase === 0 ? 1 : wavePhase === 1 ? 0.9 : wavePhase === 2 ? 0.8 : 0.9;
 
   return (
     <motion.button
       onClick={onClick}
-      className={`aspect-square rounded-xl border transition-all hover-elevate active-elevate-2 cursor-pointer relative overflow-hidden ${
+      className={`aspect-square rounded-xl border transition-all hover-elevate active-elevate-2 cursor-pointer relative overflow-hidden flex flex-col ${
         isToday ? "border-primary border-2" : "border-border"
       } ${!isCurrentMonth ? "opacity-40" : ""}`}
       style={{
@@ -264,40 +263,31 @@ function FlickeringMoodCell({
       whileTap={{ scale: 0.95 }}
       data-testid={`date-${format(date, "yyyy-MM-dd")}`}
     >
-      <div className="flex items-center justify-center h-full p-2">
-        <AnimatePresence mode="wait">
-          {showEmoji ? (
-            <motion.div
-              key="emoji"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.7 }}
-              transition={{ duration: 0.4 }}
-              className="text-3xl"
-            >
-              {EMOTION_EMOJIS[mood.emotion]}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="date"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.7 }}
-              transition={{ duration: 0.4 }}
-              className={`text-2xl font-display font-bold ${isToday ? "text-primary" : "text-foreground"}`}
-            >
-              {format(date, "d")}
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Emoji at top with wave animation */}
+      <motion.div 
+        className="text-2xl pt-1"
+        animate={{ 
+          scale: emojiScale,
+          opacity: emojiOpacity
+        }}
+        transition={{ duration: 2, ease: "easeInOut" }}
+      >
+        {EMOTION_EMOJIS[mood.emotion]}
+      </motion.div>
+      
+      {/* Date number below */}
+      <div className="flex-1 flex items-center justify-center">
+        <span className={`text-xl font-display font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
+          {format(date, "d")}
+        </span>
       </div>
 
       {/* Privacy indicator */}
-      <div className="absolute top-1 right-1">
+      <div className="absolute bottom-1 right-1">
         {mood.isPublic ? (
-          <Globe className="h-3 w-3 text-muted-foreground" />
+          <Globe className="h-2.5 w-2.5 text-muted-foreground" />
         ) : (
-          <Lock className="h-3 w-3 text-muted-foreground" />
+          <Lock className="h-2.5 w-2.5 text-muted-foreground" />
         )}
       </div>
     </motion.button>
