@@ -9,7 +9,7 @@ import {
   type User as FirebaseUser
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth, db, handleFirebaseError } from "./firebase";
 import type { User } from "@shared/schema";
 
 interface AuthContextType {
