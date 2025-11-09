@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import { collection, query, getDocs, addDoc, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, getDocs, addDoc, doc, updateDoc, arrayUnion, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Tribe } from "@shared/schema";
 
