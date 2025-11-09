@@ -46,16 +46,8 @@ export default function Tribes() {
   }, []);
 
   const loadTribes = async () => {
-    try {
-      const tribesQuery = query(collection(db, "tribes"));
-      const snapshot = await getDocs(tribesQuery);
-      const tribesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tribe));
-      setTribes(tribesData);
-    } catch (error) {
-      console.error("Error loading tribes:", error);
-    } finally {
-      setLoading(false);
-    }
+    // This function is no longer needed as we use real-time listeners
+    // Kept for compatibility
   };
 
   const handleCreateTribe = async () => {
