@@ -1,0 +1,42 @@
+{
+  "name": "Alvice - Express Yourself",
+  "short_name": "Alvice",
+  "description": "A social media platform combining self-expression, mood tracking, and social discovery",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#FFD166",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "lifestyle", "health"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Check Mood",
+      "short_name": "Mood",
+      "description": "Check in with your daily mood",
+      "url": "/?action=mood",
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Create Post",
+      "short_name": "Post",
+      "description": "Share a new post",
+      "url": "/?action=post",
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+    }
+  ]
+}
