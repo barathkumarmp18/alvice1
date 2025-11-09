@@ -30,7 +30,19 @@ export default function Tribes() {
   const [isPrivate, setIsPrivate] = useState(false);
 
   useEffect(() => {
-    loadTribes();
+    // Set up real-time listener for tribes
+    const tribesQuery = query(collection(db, "tribes"));
+    
+    const unsubscribe = onSnapshot(tribesQuery, (snapshot) => {
+      const tribesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tribe));
+      setTribes(tribesData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error loading tribes:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadTribes = async () => {
