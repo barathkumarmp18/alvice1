@@ -88,9 +88,12 @@ export default function Chats() {
       const userIds = new Set(snapshot.docs.map(doc => doc.data().senderId));
       const conversations = await Promise.all(
         Array.from(userIds).map(async (userId) => {
-          const userDoc = await getDocs(query(collection(db, "users"), where("id", "==", userId), limit(1)));
-          if (!userDoc.empty) {
-            const user = { id: userDoc.docs[0].id, ...userDoc.docs[0].data() } as User;
+          // Use doc() to get user by document ID instead of querying by "id" field
+          const userDocRef = doc(db, "users", userId);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const user = { id: userDoc.id, ...userDoc.data() } as User;
             const lastMessageDoc = snapshot.docs.find(doc => doc.data().senderId === userId);
             const lastMessage = lastMessageDoc ? { id: lastMessageDoc.id, ...lastMessageDoc.data() } as Message : undefined;
             return { user, lastMessage };
