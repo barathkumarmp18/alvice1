@@ -106,30 +106,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithEmail = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      const errorMessage = handleFirebaseError(error);
+      console.error('Email sign-in error:', errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
   const signUpWithEmail = async (email: string, password: string, displayName: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    
-    const newUser: Omit<User, 'id'> = {
-      email,
-      displayName,
-      username: email.split('@')[0],
-      role: "explorer",
-      interests: [],
-      contentPreferences: [],
-      followers: [],
-      following: [],
-      createdAt: new Date().toISOString(),
-      profileSetupComplete: false,
-      settings: {
-        diaryPublic: true,
-        allowAnonymousMessages: true,
-        multiAccountIds: [],
-      },
-    };
-    await setDoc(doc(db, "users", result.user.uid), { ...newUser, id: result.user.uid });
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      const newUser: Omit<User, 'id'> = {
+        email,
+        displayName,
+        username: email.split('@')[0],
+        role: "explorer",
+        interests: [],
+        contentPreferences: [],
+        followers: [],
+        following: [],
+        createdAt: new Date().toISOString(),
+        profileSetupComplete: false,
+        settings: {
+          diaryPublic: true,
+          allowAnonymousMessages: true,
+          multiAccountIds: [],
+        },
+      };
+      await setDoc(doc(db, "users", result.user.uid), { ...newUser, id: result.user.uid });
+    } catch (error: any) {
+      const errorMessage = handleFirebaseError(error);
+      console.error('Email sign-up error:', errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
   const signOut = async () => {
