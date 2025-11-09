@@ -128,6 +128,8 @@ export default function Diary() {
                 const mood = getMoodForDate(date);
                 const isToday = isSameDay(date, new Date());
                 const isCurrentMonth = isSameMonth(date, currentMonth);
+                const daysDiff = Math.floor((new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+                const canEdit = daysDiff >= 0 && daysDiff <= 5;
 
                 return mood ? (
                   <FlickeringMoodCell
@@ -138,6 +140,33 @@ export default function Diary() {
                     isCurrentMonth={isCurrentMonth}
                     onClick={() => setSelectedEntry(mood)}
                   />
+                ) : canEdit ? (
+                  <motion.button
+                    key={date.toISOString()}
+                    onClick={() => {
+                      // Allow adding mood for this date
+                      const newEntry = {
+                        id: '',
+                        userId: currentUser?.uid || '',
+                        emotion: 'calm' as EmotionType,
+                        reason: '',
+                        isPublic: false,
+                        date: format(date, "yyyy-MM-dd"),
+                        createdAt: new Date().toISOString()
+                      };
+                      setSelectedEntry(newEntry as MoodEntry);
+                    }}
+                    className={`aspect-square rounded-xl border bg-card flex items-center justify-center hover-elevate active-elevate-2 cursor-pointer ${
+                      isToday ? "border-primary border-2" : "border-border border-dashed"
+                    } ${!isCurrentMonth ? "opacity-40" : ""}`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    data-testid={`date-${format(date, "yyyy-MM-dd")}`}
+                  >
+                    <span className={`text-sm font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                      {format(date, "d")}
+                    </span>
+                  </motion.button>
                 ) : (
                   <motion.div
                     key={date.toISOString()}
