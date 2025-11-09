@@ -94,12 +94,20 @@ export function EnhancedCreatePostModal({ isOpen, onClose, onPostCreated }: Enha
 
     try {
       setLoading(true);
+      
+      // Upload images to Firebase Storage if any
+      let imageUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        const postId = `post_${Date.now()}`;
+        imageUrls = await uploadPostImages(imageFiles, currentUser.uid, postId);
+      }
+
       await addDoc(collection(db, "posts"), {
         authorId: currentUser.uid,
         type: postType,
         title: title.trim(),
         content: content.trim(),
-        images,
+        images: imageUrls,
         tribeIds: selectedTribes,
         tags,
         likes: [],
