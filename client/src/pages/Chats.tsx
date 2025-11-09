@@ -64,11 +64,30 @@ export default function Chats() {
   }, [currentUser, selectedChat]);
 
   useEffect(() => {
-    if (selectedChat) {
-      loadMessages(selectedChat.id);
+    if (!currentUser || !selectedChat) return;
+
+    // Set up real-time listener for messages in this conversation
+    const messagesQuery = query(
+      collection(db, "messages"),
+      orderBy("createdAt", "asc")
+    );
+
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const chatMessages = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Message))
+        .filter(msg => 
+          (msg.senderId === currentUser.uid && msg.receiverId === selectedChat.id) ||
+          (msg.senderId === selectedChat.id && msg.receiverId === currentUser.uid)
+        );
+
+      setMessages(chatMessages);
       scrollToBottom();
-    }
-  }, [selectedChat]);
+    }, (error) => {
+      console.error("Error loading messages:", error);
+    });
+
+    return () => unsubscribe();
+  }, [selectedChat, currentUser]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
