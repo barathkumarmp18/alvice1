@@ -209,46 +209,30 @@ export default function Home() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        {/* Mood section */}
-        {todayMood ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={() => setShowMoodPopup(true)}
-            className="cursor-pointer hover-elevate active-elevate-2"
-            data-testid="card-current-mood"
-          >
-            <Card className="p-6 border-2">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-display font-bold">
-                    {userData?.displayName || "You"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {moodSlogan}
-                  </p>
-                </div>
-                <div className="text-6xl animate-pulse">
-                  {EMOTION_EMOJIS[todayMood.emotion]}
-                </div>
+        {/* Mood section - Always at top */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => setShowMoodPopup(true)}
+          className="cursor-pointer hover-elevate active-elevate-2"
+          data-testid="card-mood-display"
+        >
+          <Card className="p-6 border-2 bg-gradient-to-r from-card/80 via-card to-card/80 backdrop-blur-sm">
+            <div className="flex items-center gap-6">
+              <div className="text-7xl">
+                {todayMood ? EMOTION_EMOJIS[todayMood.emotion] : "😐"}
               </div>
-            </Card>
-          </motion.div>
-        ) : (
-          <Card 
-            className="p-6 cursor-pointer hover-elevate active-elevate-2"
-            onClick={() => setShowMoodPopup(true)}
-            data-testid="card-check-mood"
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-4xl">😊</span>
               <div className="flex-1">
-                <h3 className="font-display font-semibold">How are you feeling today?</h3>
-                <p className="text-sm text-muted-foreground">Tap to check in with your mood</p>
+                <h3 className="text-2xl font-display font-bold">
+                  {userData?.displayName || "You"}
+                </h3>
+                <p className="text-base text-muted-foreground mt-1">
+                  {todayMood ? moodSlogan : "Tap to share how you're feeling today"}
+                </p>
               </div>
             </div>
           </Card>
-        )}
+        </motion.div>
 
         {/* Feed */}
         <div className="space-y-4">
