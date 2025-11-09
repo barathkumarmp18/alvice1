@@ -24,7 +24,8 @@ export function EnhancedCreatePostModal({ isOpen, onClose, onPostCreated }: Enha
   const [postType, setPostType] = useState<"post" | "question">("post");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [selectedTribes, setSelectedTribes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
