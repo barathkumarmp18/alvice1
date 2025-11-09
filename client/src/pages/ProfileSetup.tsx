@@ -94,6 +94,9 @@ export default function ProfileSetup() {
         name: organizationName.trim(),
       } : undefined;
 
+      // Generate anonymous link ID if not exists
+      const anonymousLinkId = `${currentUser.uid.substring(0, 8)}_${Math.random().toString(36).substring(7)}`;
+
       await setDoc(doc(db, "users", currentUser.uid), {
         email: currentUser.email,
         photoURL: currentUser.photoURL || null,
@@ -108,6 +111,7 @@ export default function ProfileSetup() {
         employmentStatus: employmentStatus || null,
         relationshipStatus: relationshipStatus || null,
         organizationDetails: organizationDetails || null,
+        anonymousLinkId,
         profileSetupComplete: true,
         followers: [],
         following: [],
