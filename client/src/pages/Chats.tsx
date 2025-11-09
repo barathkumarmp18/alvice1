@@ -131,12 +131,24 @@ export default function Chats() {
     }
   };
 
-  const generateAnonymousLink = () => {
+  const generateAnonymousLink = async () => {
+    if (!currentUser) return;
+    
     if (userData?.anonymousLinkId) {
       setAnonymousLink(`${window.location.origin}/anonymous/${userData.anonymousLinkId}`);
     } else {
-      const linkId = Math.random().toString(36).substring(7);
+      // Generate a unique link ID
+      const linkId = `${currentUser.uid.substring(0, 8)}_${Math.random().toString(36).substring(7)}`;
       setAnonymousLink(`${window.location.origin}/anonymous/${linkId}`);
+      
+      // Save the link ID to the user document
+      try {
+        await setDoc(doc(db, "users", currentUser.uid), {
+          anonymousLinkId: linkId,
+        }, { merge: true });
+      } catch (error) {
+        console.error("Error saving anonymous link:", error);
+      }
     }
   };
 
