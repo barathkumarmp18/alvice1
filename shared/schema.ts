@@ -160,7 +160,9 @@ export const MoodEntrySchema = z.object({
   reason: z.string(),
   isPublic: z.boolean(),
   date: z.string(),
+  editCount: z.number().default(0),
   createdAt: z.string(),
+  updatedAt: z.string().optional(),
 });
 
 export type MoodEntry = z.infer<typeof MoodEntrySchema>;
