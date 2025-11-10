@@ -69,7 +69,7 @@ Optimized query indexes for:
 
 Your app is running at:
 ```
-https://5e884c69-d280-46df-a355-770ea56b7ca0.preview.emergentagent.com
+https://debug-preview-1.preview.emergentagent.com
 ```
 
 **To enable Google Sign-In, you MUST add this domain to Firebase:**
@@ -189,7 +189,7 @@ firebase deploy --only storage           # Deploy storage rules
 
 Your app is accessible at:
 - **Local:** http://localhost:5000
-- **Public:** https://5e884c69-d280-46df-a355-770ea56b7ca0.preview.emergentagent.com
+- **Public:** https://debug-preview-1.preview.emergentagent.com
 
 **Current Screen:** Login/Signup page ✓
 **Firebase Status:** Connected and ready ✓

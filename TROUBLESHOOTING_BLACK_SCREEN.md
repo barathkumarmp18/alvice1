@@ -110,7 +110,7 @@ If you DON'T see these, there's a Firebase config issue.
 
 The preview URL should be:
 ```
-https://5e884c69-d280-46df-a355-770ea56b7ca0.preview.emergentagent.com
+https://debug-preview-1.preview.emergentagent.com
 ```
 
 Make sure:
