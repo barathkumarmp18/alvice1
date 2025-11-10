@@ -64,6 +64,7 @@ function Router() {
         <Route path="/create-tribe" component={CreateTribe} />
         <Route path="/diary" component={Diary} />
         <Route path="/profile" component={Profile} />
+        <Route path="/notifications" component={Notifications} />
         <Route component={NotFound} />
       </Switch>
       <BottomNav />
