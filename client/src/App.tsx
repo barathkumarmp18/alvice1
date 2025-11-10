@@ -16,6 +16,7 @@ import Explore from "./pages/Explore";
 import CreateTribe from "./pages/CreateTribe";
 import Diary from "./pages/Diary";
 import Profile from "./pages/Profile";
+import Notifications from "./pages/Notifications";
 import NotFound from "@/pages/not-found";
 
 function Router() {
