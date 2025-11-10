@@ -8,11 +8,12 @@ import MoodCheckPopup from "@/components/MoodCheckPopup";
 import { EnhancedCreatePostModal } from "@/components/EnhancedCreatePostModal";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, setDoc, where, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, setDoc, where, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getRandomSlogan } from "@/lib/emotion-slogans";
 import { formatDistanceToNow } from "date-fns";
 import type { Post, User, MoodEntry, EmotionType } from "@shared/schema";
+import { useLocation } from "wouter";
 
 const EMOTION_EMOJIS: Record<EmotionType, string> = {
   happiness: "😊",
@@ -25,6 +26,7 @@ const EMOTION_EMOJIS: Record<EmotionType, string> = {
 export default function Home() {
   const { userData, currentUser } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [showMoodPopup, setShowMoodPopup] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [posts, setPosts] = useState<(Post & { author?: User })[]>([]);
@@ -32,6 +34,7 @@ export default function Home() {
   const [moodSlogan, setMoodSlogan] = useState<string>("");
   const [globalEmotions, setGlobalEmotions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasCheckedToday, setHasCheckedToday] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -61,12 +64,25 @@ export default function Home() {
 
     loadTodayMood();
     loadGlobalEmotions();
-    checkMoodTime();
 
     return () => {
       unsubscribePosts();
     };
   }, [currentUser]);
+
+  useEffect(() => {
+    // Show mood popup only once per day
+    if (todayMood && !hasCheckedToday) {
+      setHasCheckedToday(true);
+    } else if (!todayMood && !hasCheckedToday && currentUser) {
+      // Show popup after 1 second if no mood recorded today
+      const timer = setTimeout(() => {
+        setShowMoodPopup(true);
+        setHasCheckedToday(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [todayMood, hasCheckedToday, currentUser]);
 
   const loadPosts = async () => {
     // This function is no longer needed as we use real-time listeners
@@ -132,17 +148,50 @@ export default function Home() {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Save mood entry
-      const moodEntry = {
-        userId: currentUser.uid,
-        emotion,
-        reason,
-        isPublic: shouldPost,
-        date: today,
-        createdAt: new Date().toISOString(),
-      };
-
-      const moodRef = await addDoc(collection(db, "moods"), moodEntry);
+      // Check if mood already exists for today
+      const moodsQuery = query(
+        collection(db, "moods"),
+        where("userId", "==", currentUser.uid),
+        where("date", "==", today)
+      );
+      const existingMoods = await getDocs(moodsQuery);
+      
+      let editCount = 0;
+      if (!existingMoods.empty) {
+        const existingMood = existingMoods.docs[0].data() as MoodEntry;
+        editCount = (existingMood.editCount || 0) + 1;
+        
+        // Check if user has exceeded edit limit
+        if (editCount > 3) {
+          toast({
+            title: "Edit limit reached",
+            description: "You can only edit your mood 3 times per day",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Update existing mood
+        await updateDoc(doc(db, "moods", existingMoods.docs[0].id), {
+          emotion,
+          reason,
+          isPublic: shouldPost,
+          editCount,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // Create new mood entry
+        const moodEntry = {
+          userId: currentUser.uid,
+          emotion,
+          reason,
+          isPublic: shouldPost,
+          date: today,
+          editCount: 0,
+          createdAt: new Date().toISOString(),
+        };
+        await addDoc(collection(db, "moods"), moodEntry);
+      }
       
       // Update user's current mood
       await setDoc(doc(db, "users", currentUser.uid), {
@@ -188,13 +237,6 @@ export default function Home() {
     }
   };
 
-  const checkMoodTime = () => {
-    // Show mood popup on first login or if no mood recorded today
-    if (!todayMood) {
-      setTimeout(() => setShowMoodPopup(true), 1000);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -203,20 +245,23 @@ export default function Home() {
           <h1 className="text-2xl font-display font-bold bg-gradient-to-r from-emotion-happiness via-emotion-excitement to-emotion-calm bg-clip-text text-transparent">
             Alvice
           </h1>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="relative hover-elevate active-elevate-2"
-            data-testid="button-notifications"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="relative hover-elevate active-elevate-2"
+              onClick={() => navigate("/notifications")}
+              data-testid="button-notifications"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
+            </Button>
+          </div>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        {/* Mood section - Always at top */}
+        {/* Mood section - Display emoji with slogan at top */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -236,6 +281,11 @@ export default function Home() {
                 <p className="text-base text-muted-foreground mt-1">
                   {todayMood ? moodSlogan : "Tap to share how you're feeling today"}
                 </p>
+                {todayMood && todayMood.editCount !== undefined && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {todayMood.editCount < 3 ? `You can edit ${3 - todayMood.editCount} more time(s) today` : "Edit limit reached for today"}
+                  </p>
+                )}
               </div>
             </div>
           </Card>
@@ -288,6 +338,7 @@ export default function Home() {
         onClose={() => setShowMoodPopup(false)}
         onSaveMood={handleSaveMood}
         globalEmotions={globalEmotions}
+        existingMood={todayMood}
       />
       <EnhancedCreatePostModal 
         isOpen={showCreatePost} 

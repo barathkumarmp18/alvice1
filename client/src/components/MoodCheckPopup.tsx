@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
-import type { EmotionType } from "@shared/schema";
+import type { EmotionType, MoodEntry } from "@shared/schema";
 
 const EMOTION_EMOJIS: Record<EmotionType, string> = {
   happiness: "😊",
@@ -34,13 +34,15 @@ interface MoodCheckPopupProps {
   onClose: () => void;
   onSaveMood: (emotion: EmotionType, reason: string, shouldPost: boolean) => Promise<void>;
   globalEmotions?: GlobalEmotionData[];
+  existingMood?: MoodEntry | null;
 }
 
 export default function MoodCheckPopup({ 
   open, 
   onClose, 
   onSaveMood,
-  globalEmotions = []
+  globalEmotions = [],
+  existingMood
 }: MoodCheckPopupProps) {
   const [step, setStep] = useState<"select" | "entry">("select");
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
@@ -60,9 +62,14 @@ export default function MoodCheckPopup({
   const handleSave = async (shouldPost: boolean) => {
     if (!selectedEmotion) return;
     
+    // Check if user has written a reason
+    if (!reason.trim()) {
+      return; // Don't save if no reason provided
+    }
+    
     setSaving(true);
     try {
-      await onSaveMood(selectedEmotion, reason.trim() || "Just feeling this way", shouldPost);
+      await onSaveMood(selectedEmotion, reason.trim(), shouldPost);
       onClose();
       resetState();
     } catch (error) {
@@ -145,7 +152,7 @@ export default function MoodCheckPopup({
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Write about how you're feeling... (optional)"
+                  placeholder="Write about how you're feeling..."
                   className="min-h-32 resize-none"
                   maxLength={500}
                   data-testid="input-mood-reason"
@@ -155,32 +162,38 @@ export default function MoodCheckPopup({
                 </p>
               </div>
 
-              <div className="space-y-3">
-                <p className="text-sm text-center text-muted-foreground">Save to:</p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSave(false)}
-                    disabled={saving}
-                    className="flex-1 h-16 flex flex-col gap-1"
-                    data-testid="button-save-diary"
-                  >
-                    <span className="text-xl">📔</span>
-                    <span className="text-xs">Diary</span>
-                    <span className="text-xs text-muted-foreground">Private</span>
-                  </Button>
-                  <Button
-                    onClick={() => handleSave(true)}
-                    disabled={saving}
-                    className="flex-1 h-16 flex flex-col gap-1 bg-gradient-to-r from-emotion-happiness to-emotion-excitement"
-                    data-testid="button-post-public"
-                  >
-                    <span className="text-xl">🌍</span>
-                    <span className="text-xs">Post</span>
-                    <span className="text-xs opacity-90">Public</span>
-                  </Button>
-                </div>
-              </div>
+              {/* Show buttons only after user types something */}
+              {reason.trim().length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-3"
+                >
+                  <p className="text-sm text-center text-muted-foreground">What would you like to do?</p>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleSave(false)}
+                      disabled={saving}
+                      className="flex-1 h-14 text-base"
+                      data-testid="button-add-to-diary"
+                    >
+                      Add to Diary
+                    </Button>
+                    <Button
+                      onClick={() => handleSave(true)}
+                      disabled={saving}
+                      className="flex-1 h-14 text-base bg-gradient-to-r from-emotion-happiness to-emotion-excitement"
+                      data-testid="button-post"
+                    >
+                      Post
+                    </Button>
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Diary is private • Post is public
+                  </p>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
