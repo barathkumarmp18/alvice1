@@ -139,7 +139,7 @@ export default function MoodCheckPopup({
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 py-6"
+              className="space-y-4 py-6"
             >
               <div className="text-center space-y-2">
                 <span className="text-6xl">{EMOTION_EMOJIS[selectedEmotion]}</span>
@@ -148,12 +148,41 @@ export default function MoodCheckPopup({
                 </h3>
               </div>
 
+              {/* Worldwide Emotion Forecast - Always visible */}
+              <motion.div 
+                className="bg-accent/30 rounded-lg p-3 space-y-2"
+                animate={{ 
+                  height: reason.trim().length > 0 ? "auto" : "auto",
+                  opacity: 1 
+                }}
+                transition={{ duration: 0.3 }}
+              >
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Worldwide Emotion Forecast
+                </p>
+                {globalEmotions && globalEmotions.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {globalEmotions.slice(0, 3).map((data) => (
+                      <div key={data.emotion} className="flex flex-col items-center gap-1 bg-background/50 rounded-md p-2">
+                        <span className="text-2xl">{EMOTION_EMOJIS[data.emotion]}</span>
+                        <span className="text-xs font-semibold">{data.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Be the first to share today!
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Reason textarea */}
               <div className="space-y-2">
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Write about how you're feeling..."
-                  className="min-h-32 resize-none"
+                  className="min-h-24 resize-none"
                   maxLength={500}
                   data-testid="input-mood-reason"
                 />
@@ -175,7 +204,7 @@ export default function MoodCheckPopup({
                       variant="outline"
                       onClick={() => handleSave(false)}
                       disabled={saving}
-                      className="flex-1 h-14 text-base"
+                      className="flex-1 h-12 text-sm"
                       data-testid="button-add-to-diary"
                     >
                       Add to Diary
@@ -183,7 +212,7 @@ export default function MoodCheckPopup({
                     <Button
                       onClick={() => handleSave(true)}
                       disabled={saving}
-                      className="flex-1 h-14 text-base bg-gradient-to-r from-emotion-happiness to-emotion-excitement"
+                      className="flex-1 h-12 text-sm bg-gradient-to-r from-emotion-happiness to-emotion-excitement"
                       data-testid="button-post"
                     >
                       Post

@@ -211,19 +211,20 @@ export default function Chats() {
               <Users className="h-5 w-5 text-purple-500" />
               <h3 className="font-semibold">Anonymous Center</h3>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium mb-1">Your Anonymous Message Link</p>
-                <p className="text-xs text-muted-foreground truncate">{anonymousLink}</p>
+                <p className="text-xs text-muted-foreground truncate break-all">{anonymousLink}</p>
               </div>
               <Button
                 size="sm"
                 onClick={copyAnonymousLink}
-                className="gap-2 hover-elevate active-elevate-2"
+                className="gap-2 hover-elevate active-elevate-2 shrink-0"
                 data-testid="button-copy-link"
               >
                 <Link2 className="h-4 w-4" />
-                Copy Link
+                <span className="hidden sm:inline">Copy Link</span>
+                <span className="sm:hidden">Copy</span>
               </Button>
             </div>
           </div>

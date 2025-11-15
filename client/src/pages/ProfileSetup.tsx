@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, User, Calendar, FileText, Heart, Briefcase, GraduationCap, Building2, School } from "lucide-react";
+import { Sparkles, User, Calendar, FileText, Heart, Briefcase, GraduationCap, Building2, School, Camera, ArrowRight } from "lucide-react";
 import type { UserRole, LifeStage, OrganizationDetails } from "@shared/schema";
 
 const interestCategories = {
@@ -43,6 +44,7 @@ export default function ProfileSetup() {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [role, setRole] = useState<UserRole | "">("");
   const [displayName, setDisplayName] = useState(currentUser?.displayName || "");
@@ -56,6 +58,8 @@ export default function ProfileSetup() {
   const [relationshipStatus, setRelationshipStatus] = useState<"single" | "in_relationship" | "married" | "prefer_not_to_say" | "">("");
   const [organizationType, setOrganizationType] = useState<"school" | "college" | "company" | "other" | "">("");
   const [organizationName, setOrganizationName] = useState("");
+  const [profilePicture, setProfilePicture] = useState<string>(currentUser?.photoURL || "");
+  const [uploadingPicture, setUploadingPicture] = useState(false);
 
   const totalSteps = 9;
   const progress = ((step + 1) / totalSteps) * 100;
@@ -84,6 +88,41 @@ export default function ProfileSetup() {
     }
   };
 
+  const handleSkip = () => {
+    // Skip optional fields
+    if (step === 3) {
+      setDateOfBirth("");
+    } else if (step === 5) {
+      setSelectedInterests([]);
+    }
+    handleNext();
+  };
+
+  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    try {
+      setUploadingPicture(true);
+      const storageRef = ref(storage, `profile-pictures/${currentUser.uid}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setProfilePicture(url);
+      toast({
+        title: "Profile picture uploaded!",
+        description: "Your profile picture has been set",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
   const handleComplete = async () => {
     try {
       setLoading(true);
@@ -99,13 +138,13 @@ export default function ProfileSetup() {
 
       await setDoc(doc(db, "users", currentUser.uid), {
         email: currentUser.email,
-        photoURL: currentUser.photoURL || null,
+        photoURL: profilePicture || currentUser.photoURL || null,
         role,
         displayName,
         username,
-        dateOfBirth,
+        dateOfBirth: dateOfBirth || null,
         bio,
-        interests: selectedInterests,
+        interests: selectedInterests.length > 0 ? selectedInterests : [],
         contentPreferences: selectedContent,
         lifeStage: selectedLifeStage,
         employmentStatus: employmentStatus || null,
@@ -140,14 +179,18 @@ export default function ProfileSetup() {
       case 0: return role !== "";
       case 1: return displayName.trim() !== "";
       case 2: return username.trim() !== "";
-      case 3: return dateOfBirth !== "";
+      case 3: return true; // DOB is now optional with skip
       case 4: return bio.trim() !== "";
-      case 5: return selectedInterests.length > 0;
+      case 5: return true; // Interests are now optional with skip
       case 6: return selectedContent.length > 0;
       case 7: return selectedLifeStage !== "";
       case 8: return true;
       default: return false;
     }
+  };
+
+  const canSkip = () => {
+    return step === 3 || step === 5;
   };
 
   return (
@@ -202,6 +245,34 @@ export default function ProfileSetup() {
                   title="What's your name?"
                   description="This is how others will see you on Alvice"
                 />
+                
+                {/* Profile Picture Upload */}
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={profilePicture} />
+                      <AvatarFallback className="text-2xl">{displayName?.[0] || "U"}</AvatarFallback>
+                    </Avatar>
+                    <Button
+                      type="button"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPicture}
+                      className="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-primary"
+                      data-testid="button-upload-picture"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureUpload}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="displayName" className="text-lg">Display Name</Label>
                   <Input
@@ -240,11 +311,23 @@ export default function ProfileSetup() {
 
             {step === 3 && (
               <StepContainer key="step-3">
-                <StepHeader
-                  icon={<Calendar className="h-8 w-8" />}
-                  title="When's your birthday?"
-                  description="We'll use this to personalize your experience"
-                />
+                <div className="relative">
+                  <StepHeader
+                    icon={<Calendar className="h-8 w-8" />}
+                    title="When's your birthday?"
+                    description="We'll use this to personalize your experience"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSkip}
+                    className="absolute top-0 right-0 gap-1 text-muted-foreground hover:text-foreground"
+                    data-testid="button-skip-dob"
+                  >
+                    Skip <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="dob" className="text-lg">Date of Birth</Label>
                   <Input
@@ -284,21 +367,33 @@ export default function ProfileSetup() {
 
             {step === 5 && (
               <StepContainer key="step-5">
-                <StepHeader
-                  icon={<Heart className="h-8 w-8" />}
-                  title="What are your interests?"
-                  description="Select topics you're passionate about"
-                />
-                <div className="space-y-6 max-h-96 overflow-y-auto">
+                <div className="relative">
+                  <StepHeader
+                    icon={<Heart className="h-8 w-8" />}
+                    title="What are your interests?"
+                    description="Select topics you're passionate about"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSkip}
+                    className="absolute top-0 right-0 gap-1 text-muted-foreground hover:text-foreground"
+                    data-testid="button-skip-interests"
+                  >
+                    Skip <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
                   {Object.entries(interestCategories).map(([category, interests]) => (
-                    <div key={category} className="space-y-3">
-                      <h3 className="font-semibold text-foreground">{category}</h3>
+                    <div key={category} className="space-y-2">
+                      <h3 className="font-semibold text-sm text-foreground sticky top-0 bg-background/95 backdrop-blur-sm py-1">{category}</h3>
                       <div className="flex flex-wrap gap-2">
                         {interests.map((interest) => (
                           <Badge
                             key={interest}
                             variant={selectedInterests.includes(interest) ? "default" : "outline"}
-                            className="cursor-pointer hover-elevate active-elevate-2 px-4 py-2 text-sm"
+                            className="cursor-pointer hover-elevate active-elevate-2 px-3 py-1.5 text-xs"
                             onClick={() => toggleInterest(interest)}
                             data-testid={`badge-interest-${interest.toLowerCase().replace(/\s/g, "-")}`}
                           >
@@ -309,7 +404,7 @@ export default function ProfileSetup() {
                     </div>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground mt-4">{selectedInterests.length} selected</p>
+                <p className="text-sm text-muted-foreground text-center mt-3">{selectedInterests.length} selected</p>
               </StepContainer>
             )}
 
@@ -415,8 +510,8 @@ export default function ProfileSetup() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">School / College / Company</Label>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <Label className="text-base font-semibold sticky top-0 bg-background/95 backdrop-blur-sm py-1">School / College / Company</Label>
                     <div className="grid grid-cols-4 gap-2">
                       {[
                         { value: "school", icon: School, label: "School" },

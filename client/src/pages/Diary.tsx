@@ -183,22 +183,6 @@ export default function Diary() {
               })}
             </div>
           </div>
-
-          {/* Mood legend */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-sm font-medium text-muted-foreground mb-3">Your Mood Colors</p>
-            <div className="flex flex-wrap gap-3">
-              {["happiness", "sadness", "anger", "calm", "excitement"].map((emotion) => (
-                <div key={emotion} className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded"
-                    style={{ backgroundColor: getEmotionConfig(emotion as any).color }}
-                  />
-                  <span className="text-sm capitalize">{emotion}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </Card>
       </div>
 
@@ -276,13 +260,14 @@ function FlickeringMoodCell({
     return () => clearInterval(interval);
   }, []);
 
-  const emojiScale = wavePhase === 0 ? 1.1 : wavePhase === 1 ? 1.05 : wavePhase === 2 ? 1.0 : 1.05;
-  const emojiOpacity = wavePhase === 0 ? 1 : wavePhase === 1 ? 0.9 : wavePhase === 2 ? 0.8 : 0.9;
+  const emojiScale = wavePhase === 0 ? 1.15 : wavePhase === 1 ? 1.08 : wavePhase === 2 ? 1.0 : 1.08;
+  const emojiOpacity = wavePhase === 0 ? 1 : wavePhase === 1 ? 0.85 : wavePhase === 2 ? 0.7 : 0.85;
+  const emojiY = wavePhase === 0 ? -2 : wavePhase === 1 ? -1 : wavePhase === 2 ? 0 : -1;
 
   return (
     <motion.button
       onClick={onClick}
-      className={`aspect-square rounded-xl border transition-all hover-elevate active-elevate-2 cursor-pointer relative overflow-hidden flex flex-col ${
+      className={`aspect-square rounded-xl border transition-all hover-elevate active-elevate-2 cursor-pointer relative overflow-visible flex items-center justify-center ${
         isToday ? "border-primary border-2" : "border-border"
       } ${!isCurrentMonth ? "opacity-40" : ""}`}
       style={{
@@ -292,23 +277,23 @@ function FlickeringMoodCell({
       whileTap={{ scale: 0.95 }}
       data-testid={`date-${format(date, "yyyy-MM-dd")}`}
     >
-      {/* Emoji at top with wave animation */}
-      <motion.div 
-        className="text-2xl pt-1"
-        animate={{ 
-          scale: emojiScale,
-          opacity: emojiOpacity
-        }}
-        transition={{ duration: 2, ease: "easeInOut" }}
-      >
-        {EMOTION_EMOJIS[mood.emotion]}
-      </motion.div>
-      
-      {/* Date number below */}
-      <div className="flex-1 flex items-center justify-center">
+      {/* Date number and emoji overlapped */}
+      <div className="relative flex items-center justify-center">
         <span className={`text-xl font-display font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
           {format(date, "d")}
         </span>
+        {/* Emoji overlapping the date with wave animation */}
+        <motion.div 
+          className="absolute text-4xl"
+          animate={{ 
+            scale: emojiScale,
+            opacity: emojiOpacity,
+            y: emojiY
+          }}
+          transition={{ duration: 2, ease: "easeInOut" }}
+        >
+          {EMOTION_EMOJIS[mood.emotion]}
+        </motion.div>
       </div>
 
       {/* Privacy indicator */}
