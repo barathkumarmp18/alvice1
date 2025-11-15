@@ -102,6 +102,27 @@ export default function ProfileSetup() {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return;
 
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setUploadingPicture(true);
       const storageRef = ref(storage, `profile-pictures/${currentUser.uid}`);
@@ -133,10 +154,20 @@ export default function ProfileSetup() {
         name: organizationName.trim(),
       } : undefined;
 
-      // Generate anonymous link ID if not exists
-      const anonymousLinkId = `${currentUser.uid.substring(0, 8)}_${Math.random().toString(36).substring(7)}`;
+      // Check for existing anonymous link ID, only generate if doesn't exist
+      let anonymousLinkId = "";
+      const userDocRef = doc(db, "users", currentUser.uid);
+      const { getDoc } = await import("firebase/firestore");
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists() && userDoc.data().anonymousLinkId) {
+        anonymousLinkId = userDoc.data().anonymousLinkId;
+      } else {
+        anonymousLinkId = `${currentUser.uid.substring(0, 8)}_${Math.random().toString(36).substring(7)}`;
+      }
 
-      await setDoc(doc(db, "users", currentUser.uid), {
+      // Prepare user data - only include followers/following for new users
+      const userData: any = {
         email: currentUser.email,
         photoURL: profilePicture || currentUser.photoURL || null,
         role,
@@ -152,10 +183,16 @@ export default function ProfileSetup() {
         organizationDetails: organizationDetails || null,
         anonymousLinkId,
         profileSetupComplete: true,
-        followers: [],
-        following: [],
-        createdAt: new Date().toISOString(),
-      }, { merge: true });
+      };
+
+      // Only set followers/following for new users to avoid wiping existing social connections
+      if (!userDoc.exists()) {
+        userData.followers = [];
+        userData.following = [];
+        userData.createdAt = new Date().toISOString();
+      }
+
+      await setDoc(userDocRef, userData, { merge: true });
 
       await refreshUserData();
       
