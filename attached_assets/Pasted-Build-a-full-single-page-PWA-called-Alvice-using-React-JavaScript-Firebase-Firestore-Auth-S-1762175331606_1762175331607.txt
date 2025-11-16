@@ -1,0 +1,155 @@
+Build a full single-page PWA called “Alvice” using React + JavaScript + Firebase (Firestore, Auth, Storage, and Hosting).
+
+🧩 PROJECT GOAL:
+Alvice is a social media platform combining self-expression, mood tracking, and social discovery. It should use emotional color psychology and smooth 3D animations throughout the UI. All transitions should feel organic, warm, and human.
+
+🎨 COLOR PSYCHOLOGY & DESIGN:
+Use soft gradients and psychological colors:
+- Happiness: #FFD166 (warm yellow)
+- Sadness: #118AB2 (blue)
+- Anger: #EF476F (red-pink)
+- Calm: #06D6A0 (mint green)
+- Excitement: #F3722C (orange)
+Use rounded corners (radius: 2xl), card shadows, and hover effects with subtle motion.
+
+📁 FOLDER STRUCTURE:
+/src
+  /pages
+    - SplashScreen.jsx
+    - AuthPage.jsx
+    - ProfileSetup.jsx
+    - Home.jsx
+    - Chats.jsx
+    - Tribes.jsx
+    - Diary.jsx
+    - Profile.jsx
+  /components
+    - MoodPopup.jsx
+    - BottomNav.jsx
+    - PostCard.jsx
+    - TribeCard.jsx
+    - ChatBubble.jsx
+    - Header.jsx
+  /backend
+    - firebaseConfig.js
+    - auth.js
+    - firestore.js
+    - storage.js
+  /styles
+    - globals.css
+    - animations.css
+  /routes
+    - AppRouter.jsx
+index.js
+manifest.json
+serviceWorker.js
+
+🔥 FIREBASE SETUP:
+Create a `firebaseConfig.js` file in /backend:
+--------------------------------------------------
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getAnalytics } from "firebase/analytics";
+
+const firebaseConfig = {
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+  projectId: "YOUR_FIREBASE_PROJECT_ID",
+  storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_FIREBASE_MSG_ID",
+  appId: "YOUR_FIREBASE_APP_ID",
+  measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const analytics = getAnalytics(app);
+--------------------------------------------------
+
+(Replace with real Firebase keys after generation.)
+
+🪄 APP FLOW:
+
+1️⃣ SplashScreen:
+- Animated logo “Alvice” with a smooth gradient background.
+- 3D text shimmer effect, particle motion, and fade-out transition.
+- Loads main app behind the scene.
+
+2️⃣ AuthPage:
+- Google + Email/password auth with Firebase.
+- After login, redirect to ProfileSetup if new user.
+
+3️⃣ ProfileSetup (progressive questions):
+- Asks: Role (Creator/Explorer), Name, Username, DOB, Bio, Profile Pic.
+- Then Interests shown as chips by category.
+- Creators → “What content do you create?”
+- Explorers → “What content do you enjoy?”
+- Last: “What stage of life are you in?” (Student, College Student, Professional, Looking for opportunities, etc.)
+- One question per screen with fade transitions and a progress bar.
+
+4️⃣ Home Page:
+- Header: “Alvice” (left), Notifications (right)
+- Mood tab at top showing chosen emoji and message of the day (“Share your love story today 💞”).
+- Feed showing posts from friends, followed users, and interest-based recommendations.
+- Floating “+” button → opens Post Type modal:
+  - Option 1: Quick Post (title, up to 3 images, short text, up to 5 tribe crossposts)
+  - Option 2: Story (longer blog-style post with multiple images and rich text)
+- Posts are threaded Reddit-style, allowing comments and likes.
+
+5️⃣ Mood Popup (daily, 4 PM or app entry):
+- Displays emoji choices with animation.
+- After user picks one → transition to global mood stats (top 3 moods, + user’s if unique).
+- Then asks “What made you feel this way?”
+- User can choose “Keep private (Diary)” or “Post publicly”.
+  - If private → added to Diary tab (calendar view)
+  - If public → “xxxx is feeling happy today because yyyyy” appears in feed.
+- After submission, emoji animates and floats to Home top section.
+
+6️⃣ Chats:
+- DM section for mutual followers.
+- “Anonymous Center” button → lists mutual followers; user can send anonymous messages.
+- A “Copy Anonymous Link” at top (NGL style) allows others to message them.
+- Messages scrollable within container, not full-page.
+
+7️⃣ Tribes (Explore Page):
+- Shows top tribes (horizontal scroll).
+- Below: trending posts and personalized content.
+- “Create Tribe” button → opens form (like profile setup):
+  - Tribe name, motive, max members, allow anonymous, founder visibility, public/private.
+  - If private → admin approval needed.
+- Tribe feed similar to subreddit layout.
+
+8️⃣ Diary:
+- Calendar view showing daily moods and entries.
+- Clicking a date opens that day’s mood/story.
+
+9️⃣ Profile:
+- Shows followers/following count.
+- Creator Dashboard (for creators): post reach analytics, engagement metrics.
+- List of user’s posts and comments.
+- Settings (dark mode toggle, add account, sign out, edit profile).
+
+🔁 BOTTOM NAVIGATION:
+- Home (center)
+- Chats (left)
+- Tribes (right)
+- Diary (left corner)
+- Profile (right corner)
+Always visible, floating with shadow.
+
+💫 ANIMATIONS & 3D EFFECTS:
+- Use Framer Motion for page transitions and fade-ins.
+- 3D cards (parallax hover).
+- Button click ripples.
+- Smooth slide transitions between questions, modals, and tabs.
+
+🌐 FINAL REQUIREMENTS:
+- Must be a true SPA (single-page app).
+- Must be installable as a PWA.
+- Responsive for mobile and desktop.
+- Offline caching for last visited page.
+- Use Firebase for all CRUD, Auth, and Storage.
