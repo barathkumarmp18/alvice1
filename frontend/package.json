@@ -1,0 +1,7 @@
+{
+  "name": "frontend-proxy",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd /app && PORT=3000 npm run dev"
+  }
+}
