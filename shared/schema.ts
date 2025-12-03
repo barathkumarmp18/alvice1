@@ -44,6 +44,41 @@ export const OrganizationDetailsSchema = z.object({
 
 export type OrganizationDetails = z.infer<typeof OrganizationDetailsSchema>;
 
+// Life Zone types for onboarding
+export const LifeZone = z.enum([
+  "college",
+  "working", 
+  "skill",
+  "break",
+  "school",
+  "prefer_not"
+]);
+export type LifeZone = z.infer<typeof LifeZone>;
+
+// Bio identity structure
+export const BioIdentitySchema = z.object({
+  name: z.string(),
+  username: z.string(),
+  photo: z.string().optional(),
+});
+export type BioIdentity = z.infer<typeof BioIdentitySchema>;
+
+// Bio personality structure  
+export const BioPersonalitySchema = z.object({
+  story: z.string().optional(),
+  energyWords: z.array(z.string()).default([]),
+});
+export type BioPersonality = z.infer<typeof BioPersonalitySchema>;
+
+// Complete bio structure
+export const BioSchema = z.object({
+  identity: BioIdentitySchema.optional(),
+  lifeStatus: z.string().optional(),
+  details: z.record(z.any()).optional(),
+  personality: BioPersonalitySchema.optional(),
+});
+export type Bio = z.infer<typeof BioSchema>;
+
 // User Schema
 export const UserSchema = z.object({
   id: z.string(),
@@ -53,10 +88,14 @@ export const UserSchema = z.object({
   photoURL: z.string().optional(),
   role: UserRole,
   bio: z.string().optional(),
+  bioData: BioSchema.optional(),
+  bioCompleted: z.boolean().default(false),
+  selectedTopics: z.array(z.string()).default([]),
   dateOfBirth: z.string().optional(),
   interests: z.array(z.string()),
   contentPreferences: z.array(z.string()),
   lifeStage: LifeStage.optional(),
+  lifeZone: LifeZone.optional(),
   organizationDetails: OrganizationDetailsSchema,
   employmentStatus: z.enum(["employed", "unemployed", "student", "self_employed", "retired"]).optional(),
   relationshipStatus: z.enum(["single", "in_relationship", "married", "prefer_not_to_say"]).optional(),

@@ -6,7 +6,6 @@ import {
   GoogleAuthProvider,
   signInWithRedirect,
   getRedirectResult,
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   type User as FirebaseUser,
   sendSignInLinkToEmail,
@@ -18,7 +17,6 @@ import { auth, db, handleFirebaseError, secondaryAuth } from "./firebase";
 import type { User, MoodEntry } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-// --- Types and Context --- 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   userData: User | null;
@@ -45,7 +43,6 @@ export function useAuth() {
   return context;
 }
 
-// --- Helper Functions --- 
 const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 const actionCodeSettings = {
@@ -53,7 +50,36 @@ const actionCodeSettings = {
     handleCodeInApp: true, 
 };
 
-// --- Auth Provider Component --- 
+async function createUserDocumentIfNeeded(user: FirebaseUser): Promise<void> {
+  const userDocRef = doc(db, "users", user.uid);
+  const userDocSnap = await getDoc(userDocRef);
+  
+  if (!userDocSnap.exists()) {
+    console.log("Creating new user document for:", user.uid);
+    const userForDb = {
+      id: user.uid,
+      email: user.email || "",
+      displayName: user.displayName || user.email?.split('@')[0] || "User",
+      username: user.email?.split('@')[0] || `user_${user.uid.substring(0, 8)}`,
+      ...(user.photoURL && { photoURL: user.photoURL }),
+      role: "explorer" as const,
+      interests: [],
+      contentPreferences: [],
+      followers: [],
+      following: [],
+      createdAt: new Date().toISOString(),
+      profileSetupComplete: false,
+      settings: { 
+        diaryPublic: false,
+        allowAnonymousMessages: true,
+        multiAccountIds: [] 
+      }
+    };
+    await setDoc(userDocRef, userForDb);
+    console.log("User document created successfully");
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
@@ -84,9 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const batch = writeBatch(db);
     const newUserDocRef = doc(db, "users", newAccountId);
     const newUserDocSnap = await getDoc(newUserDocRef);
-    const allPrimaryIds = [...(primaryUserData.settings?.multiAccountIds || []), primaryUser.uid];
 
-    // Create the new account document if it doesn't exist
     if (!newUserDocSnap.exists()) {
       console.log("Creating new user document for linked account:", newAccountId);
       const userForDb = {
@@ -114,36 +138,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       batch.update(newUserDocRef, { "settings.multiAccountIds": arrayUnion(primaryUser.uid) });
     }
 
-    // Update only the primary user's document to add the new account
     batch.update(primaryUserDocRef, { "settings.multiAccountIds": arrayUnion(newAccountId) });
     
     await batch.commit();
     console.log("Batch committed successfully, refreshing linked accounts...");
     
-    // Immediately refresh linked accounts to update the UI
     const userDocRef = doc(db, "users", primaryUser.uid);
     const updatedUserDocSnap = await getDoc(userDocRef);
-    console.log("Updated user doc exists:", updatedUserDocSnap.exists());
     
     if (updatedUserDocSnap.exists()) {
       const freshUserData = updatedUserDocSnap.data() as User;
-      console.log("Fresh user data multiAccountIds:", freshUserData.settings?.multiAccountIds);
+      const accountIds = [freshUserData.id, ...(freshUserData.settings?.multiAccountIds || [])].filter(Boolean);
+      const uniqueAccountIds = Array.from(new Set(accountIds));
       
-      const accountIds = Array.from(new Set([freshUserData.id, ...(freshUserData.settings?.multiAccountIds || [])]));
-      console.log("Account IDs to query:", accountIds);
-      
-      if (accountIds.length > 0) {
-        const usersQuery = query(collection(db, "users"), where(documentId(), "in", accountIds));
+      if (uniqueAccountIds.length > 0) {
+        const usersQuery = query(collection(db, "users"), where(documentId(), "in", uniqueAccountIds));
         const querySnapshot = await getDocs(usersQuery);
-        console.log("Query returned", querySnapshot.docs.length, "accounts");
-        
-        const accounts = querySnapshot.docs.map(d => {
-          const data = { ...d.data(), id: d.id } as User;
-          console.log("Account found:", data.id, data.email, data.displayName);
-          return data;
-        });
-        
-        console.log("Setting linkedAccounts with", accounts.length, "accounts");
+        const accounts = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id } as User));
         setLinkedAccounts(accounts);
         setUserData(freshUserData);
       }
@@ -153,7 +164,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   }, [toast]);
 
-  // Handles redirect flows for Google and Email linking
   useEffect(() => {
     const processRedirects = async () => {
       try {
@@ -192,45 +202,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     processRedirects();
   }, [toast, handleAccountLink]);
 
-  // Core listener for all user and account data
   useEffect(() => {
     let userDocUnsubscribe: (() => void) | null = null;
     let moodUnsubscribe: (() => void) | null = null;
     let linkedAccountsUnsubscribe: (() => void) | null = null;
 
-    const authStateUnsubscribe = onAuthStateChanged(auth, (user) => {
-      // Clean up all old listeners whenever auth state changes
+    const authStateUnsubscribe = onAuthStateChanged(auth, async (user) => {
       userDocUnsubscribe?.();
       moodUnsubscribe?.();
       linkedAccountsUnsubscribe?.();
 
       setCurrentUser(user);
-      setLoading(true);
 
       if (user) {
-        // 1. Listen to the primary user's document
+        setLoading(true);
+        
+        try {
+          await createUserDocumentIfNeeded(user);
+        } catch (error) {
+          console.error("Error creating user document:", error);
+        }
+
         const userDocRef = doc(db, "users", user.uid);
         userDocUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-          const newUserData = docSnap.exists() ? docSnap.data() as User : null;
+          const newUserData = docSnap.exists() ? { ...docSnap.data(), id: docSnap.id } as User : null;
           setUserData(newUserData);
 
-          // 2. When primary user data changes, update the linked accounts listener
-          linkedAccountsUnsubscribe?.(); // Clean up the old listener first
+          linkedAccountsUnsubscribe?.();
 
-          if (newUserData) {
-            const accountIds = Array.from(new Set([newUserData.id, ...(newUserData.settings?.multiAccountIds || [])]));
-            console.log("Setting up linked accounts listener with IDs:", accountIds);
+          if (newUserData && newUserData.id) {
+            const accountIds = [newUserData.id, ...(newUserData.settings?.multiAccountIds || [])].filter(Boolean);
+            const uniqueAccountIds = Array.from(new Set(accountIds));
             
-            if (accountIds.length === 0) {
+            console.log("Setting up linked accounts listener with IDs:", uniqueAccountIds);
+            
+            if (uniqueAccountIds.length === 0) {
               setLinkedAccounts([]);
+              setLoading(false);
               return;
             }
             
-            // For IDs beyond 10, we need to batch the queries (Firestore limit)
-            const usersQuery = query(collection(db, "users"), where(documentId(), "in", accountIds.slice(0, 10)));
+            const usersQuery = query(collection(db, "users"), where(documentId(), "in", uniqueAccountIds.slice(0, 10)));
             linkedAccountsUnsubscribe = onSnapshot(usersQuery, (querySnapshot) => {
               const accounts = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id } as User));
-              console.log("Linked accounts listener received", accounts.length, "accounts out of", accountIds.length, "expected");
+              console.log("Linked accounts listener received", accounts.length, "accounts");
               setLinkedAccounts(accounts);
             }, (error) => {
                 console.error("Error listening to linked accounts:", error);
@@ -242,21 +257,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }, (error) => {
             console.error("Error listening to user document:", error);
             setUserData(null);
+            setLoading(false);
         });
 
-        // 3. Listen to today's mood
         const today = new Date().toISOString().split('T')[0];
         const moodsQuery = query(collection(db, "moods"), where("userId", "==", user.uid), where("date", "==", today), limit(1));
         moodUnsubscribe = onSnapshot(moodsQuery, (snapshot) => {
           setTodayMood(snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as MoodEntry);
-          setLoading(false); // Considered loaded after mood is checked
+          setLoading(false);
         }, (error) => {
             console.error("Error listening to moods:", error);
             setLoading(false);
         });
 
       } else {
-        // User is logged out, clear all data and stop loading
         setUserData(null);
         setTodayMood(null);
         setLinkedAccounts([]);
@@ -264,17 +278,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Main cleanup on component unmount
     return () => {
       authStateUnsubscribe();
       userDocUnsubscribe?.();
       moodUnsubscribe?.();
       linkedAccountsUnsubscribe?.();
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
-
-  // --- Authentication Actions ---
   const signInWithEmailOTP = async (email: string, displayName?: string) => {
     const otpActionCodeSettings = {
       url: `${window.location.origin}/auth`,
@@ -296,32 +307,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userCredential = await signInWithEmailLink(auth, email, url);
     const user = userCredential.user;
     
-    const userDocRef = doc(db, "users", user.uid);
-    const userDocSnap = await getDoc(userDocRef);
-    
-    if (!userDocSnap.exists()) {
-      const displayName = window.localStorage.getItem('displayNameForSignUp') || email.split('@')[0];
-      const userForDb = {
-        id: user.uid,
-        email: user.email!,
-        displayName: displayName,
-        username: email.split('@')[0],
-        ...(user.photoURL && { photoURL: user.photoURL }),
-        role: "explorer" as const,
-        interests: [],
-        contentPreferences: [],
-        followers: [],
-        following: [],
-        createdAt: new Date().toISOString(),
-        profileSetupComplete: false,
-        settings: { 
-          diaryPublic: false,
-          allowAnonymousMessages: true,
-          multiAccountIds: [] 
-        }
-      };
-      await setDoc(userDocRef, userForDb);
-    }
+    await createUserDocumentIfNeeded(user);
     
     window.localStorage.removeItem('emailForSignIn');
     window.localStorage.removeItem('displayNameForSignUp');
@@ -329,9 +315,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const signInWithGoogle = async () => { 
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider).catch(error => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        await createUserDocumentIfNeeded(result.user);
+      }
+    } catch (error: any) {
       toast({ title: "Sign-in Failed", description: handleFirebaseError(error), variant: "destructive"});
-    });
+    }
   };
 
   const signOut = async () => {
@@ -350,38 +341,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (isMobileDevice()) {
         await signInWithRedirect(secondaryAuth, provider);
-        return true; // Redirect initiated successfully
+        return true;
       } else {
         const result = await signInWithPopup(secondaryAuth, provider);
         await firebaseSignOut(secondaryAuth);
         await handleAccountLink(result.user);
-        return true; // Account linked successfully
+        return true;
       }
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user') {
-        return false; // User cancelled, not an error
+        return false;
       }
       toast({ title: "Link Failed", description: handleFirebaseError(error), variant: "destructive" });
       return false;
     }
   };
 
-
-  // Function to manually refresh linked accounts from Firestore
   const refreshLinkedAccounts = useCallback(async () => {
     if (!currentUser || !userData) return;
     
     try {
-      // Re-fetch the current user's document to get updated multiAccountIds
       const userDocRef = doc(db, "users", currentUser.uid);
       const userDocSnap = await getDoc(userDocRef);
       
       if (userDocSnap.exists()) {
         const freshUserData = { ...userDocSnap.data(), id: userDocSnap.id } as User;
-        const accountIds = Array.from(new Set([freshUserData.id, ...(freshUserData.settings?.multiAccountIds || [])]));
+        const accountIds = [freshUserData.id, ...(freshUserData.settings?.multiAccountIds || [])].filter(Boolean);
+        const uniqueAccountIds = Array.from(new Set(accountIds));
         
-        if (accountIds.length > 0) {
-          const usersQuery = query(collection(db, "users"), where(documentId(), "in", accountIds));
+        if (uniqueAccountIds.length > 0) {
+          const usersQuery = query(collection(db, "users"), where(documentId(), "in", uniqueAccountIds));
           const querySnapshot = await getDocs(usersQuery);
           const accounts = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id } as User));
           setLinkedAccounts(accounts);
@@ -396,23 +385,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const removeLinkedAccount = async (accountId: string) => {
     if (!currentUser || !userData?.settings?.multiAccountIds) return;
     
-    const allAccountIds = [userData.id, ...userData.settings.multiAccountIds];
+    const allAccountIds = [userData.id, ...userData.settings.multiAccountIds].filter(Boolean);
     const batch = writeBatch(db);
 
-    // Remove the target account's ID from all other linked accounts
     allAccountIds.forEach(id => {
-        if(id !== accountId) {
+        if(id && id !== accountId) {
             batch.update(doc(db, "users", id), { "settings.multiAccountIds": arrayRemove(accountId) });
         }
     });
 
-    // Clear the multiAccountIds for the removed account and leave only the other IDs
     const otherAccountIds = allAccountIds.filter(id => id !== accountId);
-    batch.update(doc(db, "users", accountId), { "settings.multiAccountIds": otherAccountIds });
+    if (accountId) {
+      batch.update(doc(db, "users", accountId), { "settings.multiAccountIds": otherAccountIds });
+    }
 
     await batch.commit();
-    
-    // Refresh the linked accounts list after removing
     await refreshLinkedAccounts();
     
     toast({ title: "Account Unlinked", description: "The account has been removed from your profile." });
