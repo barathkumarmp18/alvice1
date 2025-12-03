@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Sparkles, User, Camera, ArrowRight, ArrowLeft, Compass, Pen, 
   GraduationCap, Briefcase, Wrench, Coffee, School, HelpCircle,
-  Building2, BookOpen, Heart, Zap, Quote
+  Building2, BookOpen, Heart, Zap, Quote, ChevronDown, ChevronUp,
+  Loader2, AlertCircle, CheckCircle2
 } from "lucide-react";
 import type { UserRole, LifeZone } from "@shared/schema";
 
@@ -73,53 +74,133 @@ const fallbackQuotes: Record<string, string[]> = {
   ]
 };
 
-const allTopics = {
-  "Life & Growth": [
-    "Self-improvement", "Building discipline", "Daily habits", "Finding motivation",
-    "Morning routines", "Building confidence", "Gaining clarity", "Finding meaning",
-    "Inner growth", "Mental clarity", "Peak productivity", "Building resilience",
-    "Reinventing yourself", "Identity exploration", "Finding direction"
-  ],
-  "Emotions & Mind": [
-    "Managing anxiety", "Dealing with depression", "Handling stress", "Healing journey",
-    "Processing trauma", "Overcoming loneliness", "Stopping overthinking", "Emotional pain",
-    "Mood swings", "Anger management", "Facing fears", "Burnout recovery",
-    "Dealing with sadness", "Feeling empty", "Self-worth", "Overcoming insecurity"
-  ],
-  "Relationships": [
-    "Dating advice", "Finding love", "Crush confessions", "Moving on from breakups",
-    "Healing heartbreak", "Trust issues", "Making friends", "Toxic relationships",
-    "Better communication", "Attachment styles", "Long-distance love", "Family problems",
-    "Setting boundaries", "Handling rejection", "Conflict resolution"
-  ],
-  "Career & Money": [
-    "Job hunting", "Landing internships", "Resume tips", "Interview prep",
-    "Freelancing life", "Building skills", "Getting promotions", "Startup stories",
-    "Founder life", "Business advice", "Money management", "Saving tips",
-    "Investing basics", "Digital careers", "Creator economy"
-  ],
-  "Studies & Education": [
-    "Study tips", "Better concentration", "Exam preparation", "College life",
-    "School life", "Time management", "Note-taking methods", "Academic stress",
-    "Choosing courses", "Learning strategies", "Online learning", "Study motivation"
-  ],
-  "Lifestyle & Health": [
-    "Fitness journey", "Workout routines", "Diet tips", "Weight loss stories",
-    "Eating habits", "Better sleep", "Routine building", "Skincare tips",
-    "Self-care rituals", "Minimalist living", "Healthy habits", "Discipline building"
-  ],
-  "Stories & Experiences": [
-    "Life lessons", "Heartbreak stories", "Success stories", "Comeback stories",
-    "Personal experiences", "Learning from failures", "Journey sharing", "Transformation stories"
-  ],
-  "Creativity": [
-    "Writing tips", "Journaling", "Art inspiration", "Content creation",
-    "Photography", "Finding inspiration", "Creative ideas", "Creative struggles"
-  ],
-  "Tech & Digital Life": [
-    "Coding journey", "AI tools", "Tech news", "Productivity apps",
-    "Digital minimalism", "Gadget reviews", "Online life", "Gaming", "Social media growth"
-  ]
+const topicCategories: Record<string, { icon: string; color: string; subtopics: string[] }> = {
+  "Life & Growth": {
+    icon: "🌱",
+    color: "from-green-500/20 to-emerald-500/20",
+    subtopics: [
+      "Self-improvement", "Building discipline", "Daily habits", "Finding motivation",
+      "Morning routines", "Building confidence", "Gaining clarity", "Finding meaning",
+      "Inner growth", "Mental clarity", "Peak productivity", "Building resilience",
+      "Reinventing yourself", "Identity exploration", "Finding direction", "Goal setting",
+      "Mindfulness practice", "Personal development", "Life coaching tips", "Success mindset"
+    ]
+  },
+  "Mental Health": {
+    icon: "🧠",
+    color: "from-purple-500/20 to-violet-500/20",
+    subtopics: [
+      "Managing anxiety", "Dealing with depression", "Handling stress", "Healing journey",
+      "Processing trauma", "Overcoming loneliness", "Stopping overthinking", "Emotional pain",
+      "Mood swings", "Anger management", "Facing fears", "Burnout recovery",
+      "Dealing with sadness", "Feeling empty", "Self-worth", "Overcoming insecurity",
+      "Therapy experiences", "Mental health awareness", "Coping strategies", "Self-care tips"
+    ]
+  },
+  "Relationships & Love": {
+    icon: "💕",
+    color: "from-pink-500/20 to-rose-500/20",
+    subtopics: [
+      "Dating advice", "Finding love", "Crush confessions", "Moving on from breakups",
+      "Healing heartbreak", "Trust issues", "Making friends", "Toxic relationships",
+      "Better communication", "Attachment styles", "Long-distance love", "Family problems",
+      "Setting boundaries", "Handling rejection", "Conflict resolution", "Healthy relationships",
+      "Marriage advice", "Friendship goals", "Social skills", "Relationship tips"
+    ]
+  },
+  "Career & Money": {
+    icon: "💼",
+    color: "from-blue-500/20 to-cyan-500/20",
+    subtopics: [
+      "Job hunting", "Landing internships", "Resume tips", "Interview prep",
+      "Freelancing life", "Building skills", "Getting promotions", "Startup stories",
+      "Founder life", "Business advice", "Money management", "Saving tips",
+      "Investing basics", "Digital careers", "Creator economy", "Side hustles",
+      "Passive income", "Career switch", "Work-life balance", "Networking tips"
+    ]
+  },
+  "Education & Learning": {
+    icon: "📚",
+    color: "from-amber-500/20 to-yellow-500/20",
+    subtopics: [
+      "Study tips", "Better concentration", "Exam preparation", "College life",
+      "School life", "Time management", "Note-taking methods", "Academic stress",
+      "Choosing courses", "Learning strategies", "Online learning", "Study motivation",
+      "Scholarship tips", "Research help", "Project ideas", "Academic success",
+      "Language learning", "Skill development", "Certifications", "Education abroad"
+    ]
+  },
+  "Health & Fitness": {
+    icon: "💪",
+    color: "from-orange-500/20 to-red-500/20",
+    subtopics: [
+      "Fitness journey", "Workout routines", "Diet tips", "Weight loss stories",
+      "Eating habits", "Better sleep", "Routine building", "Skincare tips",
+      "Self-care rituals", "Minimalist living", "Healthy habits", "Discipline building",
+      "Yoga practice", "Meditation", "Body positivity", "Nutrition advice",
+      "Home workouts", "Gym tips", "Running motivation", "Sports training"
+    ]
+  },
+  "Stories & Inspiration": {
+    icon: "✨",
+    color: "from-indigo-500/20 to-purple-500/20",
+    subtopics: [
+      "Life lessons", "Heartbreak stories", "Success stories", "Comeback stories",
+      "Personal experiences", "Learning from failures", "Journey sharing", "Transformation stories",
+      "Motivational content", "Inspiring quotes", "Real life struggles", "Overcoming obstacles",
+      "Dream chasing", "Risk taking", "Life changing moments", "Growth stories"
+    ]
+  },
+  "Creativity & Arts": {
+    icon: "🎨",
+    color: "from-fuchsia-500/20 to-pink-500/20",
+    subtopics: [
+      "Writing tips", "Journaling", "Art inspiration", "Content creation",
+      "Photography", "Finding inspiration", "Creative ideas", "Creative struggles",
+      "Music creation", "Graphic design", "Video editing", "Storytelling",
+      "Poetry writing", "Drawing tips", "Digital art", "Creative hobbies"
+    ]
+  },
+  "Tech & Digital": {
+    icon: "💻",
+    color: "from-slate-500/20 to-gray-500/20",
+    subtopics: [
+      "Coding journey", "AI tools", "Tech news", "Productivity apps",
+      "Digital minimalism", "Gadget reviews", "Online life", "Gaming",
+      "Social media growth", "Web development", "App building", "Tech careers",
+      "Cybersecurity", "Crypto basics", "Tech tutorials", "Software tips"
+    ]
+  },
+  "Entertainment & Fun": {
+    icon: "🎮",
+    color: "from-teal-500/20 to-cyan-500/20",
+    subtopics: [
+      "Movies & shows", "Music vibes", "Book recommendations", "Anime & manga",
+      "Gaming community", "Pop culture", "Memes & humor", "Celebrity news",
+      "Event experiences", "Travel stories", "Food adventures", "Weekend plans",
+      "Hobbies", "Festival vibes", "Concert experiences", "Fun activities"
+    ]
+  },
+  "Spirituality & Philosophy": {
+    icon: "🕊️",
+    color: "from-sky-500/20 to-blue-500/20",
+    subtopics: [
+      "Spiritual growth", "Finding purpose", "Meditation practice", "Inner peace",
+      "Life philosophy", "Gratitude practice", "Manifestation", "Universe signs",
+      "Soul searching", "Deep thoughts", "Wisdom sharing", "Religious discussions",
+      "Astrology", "Tarot insights", "Energy healing", "Mindful living"
+    ]
+  },
+  "Social Issues": {
+    icon: "🌍",
+    color: "from-emerald-500/20 to-green-500/20",
+    subtopics: [
+      "Social awareness", "Environment", "Mental health advocacy", "Gender equality",
+      "LGBTQ+ support", "Diversity matters", "Community building", "Volunteering",
+      "Social change", "Youth voices", "Education access", "Healthcare talks",
+      "Political awareness", "Human rights", "Climate action", "Social justice"
+    ]
+  }
 };
 
 const lifeZoneOptions: { value: LifeZone; label: string; icon: any; description: string }[] = [
@@ -170,6 +251,7 @@ export default function ProfileSetup() {
   const [role, setRole] = useState<UserRole | "">("");
   const [displayName, setDisplayName] = useState(currentUser?.displayName || "");
   const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [profilePicture, setProfilePicture] = useState<string>(currentUser?.photoURL || "");
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [lifeZone, setLifeZone] = useState<LifeZone | "">("");
@@ -195,6 +277,38 @@ export default function ProfileSetup() {
   const [energyWords, setEnergyWords] = useState<string[]>([]);
   
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+
+  const checkUsernameAvailability = useCallback(async (usernameToCheck: string) => {
+    if (!usernameToCheck || usernameToCheck.length < 3) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    setUsernameStatus("checking");
+
+    try {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", usernameToCheck));
+      const querySnapshot = await getDocs(q);
+      
+      const isTakenByOther = querySnapshot.docs.some(doc => doc.id !== currentUser?.uid);
+      setUsernameStatus(isTakenByOther ? "taken" : "available");
+    } catch (error) {
+      console.error("Error checking username:", error);
+      setUsernameStatus("idle");
+    }
+  }, [currentUser?.uid]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (username.length >= 3) {
+        checkUsernameAvailability(username);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [username, checkUsernameAvailability]);
 
   const getSteps = useCallback(() => {
     const baseSteps = ["role", "identity", "lifezone"];
@@ -275,6 +389,14 @@ export default function ProfileSetup() {
     }
   };
 
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
   const toggleTopic = (topic: string) => {
     setSelectedTopics(prev =>
       prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
@@ -287,6 +409,11 @@ export default function ProfileSetup() {
       if (prev.length >= 3) return prev;
       return [...prev, word];
     });
+  };
+
+  const getSelectedCountForCategory = (category: string) => {
+    const subtopics = topicCategories[category]?.subtopics || [];
+    return selectedTopics.filter(topic => subtopics.includes(topic)).length;
   };
 
   const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -322,6 +449,16 @@ export default function ProfileSetup() {
     try {
       setLoading(true);
       if (!currentUser) return;
+
+      if (usernameStatus === "taken") {
+        toast({
+          title: "Username unavailable",
+          description: "Please choose a different username.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
 
       const userDocRef = doc(db, "users", currentUser.uid);
       const userDoc = await getDoc(userDocRef);
@@ -400,7 +537,7 @@ export default function ProfileSetup() {
   const canProceed = () => {
     switch (currentStepName) {
       case "role": return role !== "";
-      case "identity": return displayName.trim() !== "" && username.trim() !== "";
+      case "identity": return displayName.trim() !== "" && username.trim().length >= 3 && usernameStatus !== "taken" && usernameStatus !== "checking";
       case "lifezone": return lifeZone !== "";
       case "college_details": return true;
       case "working_details": return true;
@@ -579,14 +716,38 @@ export default function ProfileSetup() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))}
-                      placeholder="username"
-                      className="h-12"
-                    />
-                    <p className="text-sm text-muted-foreground">@{username || "username"}</p>
+                    <div className="relative">
+                      <Input
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                        placeholder="username"
+                        className={`h-12 pr-10 ${
+                          usernameStatus === "taken" ? "border-destructive focus-visible:ring-destructive" : 
+                          usernameStatus === "available" ? "border-green-500 focus-visible:ring-green-500" : ""
+                        }`}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {usernameStatus === "checking" && (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                        {usernameStatus === "taken" && (
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                        )}
+                        {usernameStatus === "available" && (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">@{username || "username"}</p>
+                      {usernameStatus === "taken" && (
+                        <p className="text-sm text-destructive">Username already taken</p>
+                      )}
+                      {usernameStatus === "available" && (
+                        <p className="text-sm text-green-500">Username available</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -893,34 +1054,91 @@ export default function ProfileSetup() {
                   <h2 className="text-2xl font-bold">
                     {role === "creator" ? "What will you post here?" : "What do you want to see more of?"}
                   </h2>
-                  <p className="text-muted-foreground">Select at least 3 topics</p>
+                  <p className="text-muted-foreground">Select at least 3 topics from any category</p>
                 </div>
 
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                  {Object.entries(allTopics).map(([category, topics]) => (
-                    <div key={category} className="space-y-2">
-                      <h3 className="font-semibold text-sm text-foreground sticky top-0 bg-background/95 backdrop-blur-sm py-1">{category}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {topics.map((topic) => (
-                          <motion.div key={topic} whileTap={{ scale: 0.95 }}>
-                            <Badge
-                              variant={selectedTopics.includes(topic) ? "default" : "outline"}
-                              className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${
-                                selectedTopics.includes(topic) 
-                                  ? "bg-primary shadow-md shadow-primary/20" 
-                                  : "hover:border-primary/50"
-                              }`}
-                              onClick={() => toggleTopic(topic)}
-                            >
-                              {topic}
-                            </Badge>
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                  {Object.entries(topicCategories).map(([category, { icon, color, subtopics }]) => {
+                    const isExpanded = expandedCategories.includes(category);
+                    const selectedCount = getSelectedCountForCategory(category);
+                    
+                    return (
+                      <motion.div
+                        key={category}
+                        className="rounded-xl border border-border overflow-hidden"
+                        layout
+                      >
+                        <motion.button
+                          onClick={() => toggleCategory(category)}
+                          className={`w-full p-4 flex items-center justify-between bg-gradient-to-r ${color} hover:opacity-90 transition-opacity`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{icon}</span>
+                            <div className="text-left">
+                              <span className="font-semibold">{category}</span>
+                              {selectedCount > 0 && (
+                                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                                  {selectedCount} selected
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <motion.div
+                            animate={{ rotate: isExpanded ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <ChevronDown className="h-5 w-5" />
                           </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                        </motion.button>
+                        
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-4 flex flex-wrap gap-2 bg-background/50">
+                                {subtopics.map((topic) => (
+                                  <motion.div
+                                    key={topic}
+                                    whileTap={{ scale: 0.95 }}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.15 }}
+                                  >
+                                    <Badge
+                                      variant={selectedTopics.includes(topic) ? "default" : "outline"}
+                                      className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${
+                                        selectedTopics.includes(topic) 
+                                          ? "bg-primary shadow-md shadow-primary/20" 
+                                          : "hover:border-primary/50 hover:bg-muted/50"
+                                      }`}
+                                      onClick={() => toggleTopic(topic)}
+                                    >
+                                      {topic}
+                                    </Badge>
+                                  </motion.div>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-                <p className="text-sm text-muted-foreground text-center">{selectedTopics.length} topics selected</p>
+                
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTopics.length} topic{selectedTopics.length !== 1 ? 's' : ''} selected
+                    {selectedTopics.length < 3 && (
+                      <span className="text-primary ml-1">(need at least 3)</span>
+                    )}
+                  </p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
