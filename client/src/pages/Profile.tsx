@@ -85,11 +85,11 @@ export default function Profile() {
 
               <div className="flex justify-center md:justify-start gap-6">
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{userData?.followers.length || 0}</p>
+                  <p className="text-2xl font-bold">{userData?.followers?.length || 0}</p>
                   <p className="text-sm text-muted-foreground">Followers</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{userData?.following.length || 0}</p>
+                  <p className="text-2xl font-bold">{userData?.following?.length || 0}</p>
                   <p className="text-sm text-muted-foreground">Following</p>
                 </div>
                 <div className="text-center">
@@ -153,8 +153,8 @@ export default function Profile() {
                   <Users className="h-5 w-5 text-emotion-excitement" />
                   <p className="text-sm font-medium text-muted-foreground">Growth</p>
                 </div>
-                <p className="text-3xl font-bold">{userData.followers.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">+{Math.round(userData.followers.length * 0.08)} this week</p>
+                <p className="text-3xl font-bold">{userData?.followers?.length || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">+{Math.round((userData?.followers?.length || 0) * 0.08)} this week</p>
               </div>
             </div>
           </Card>

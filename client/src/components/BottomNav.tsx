@@ -22,35 +22,35 @@ export function BottomNav() {
             const isActive = location === item.path;
             
             return (
-              <Link key={item.path} href={item.path}>
-                <a
-                  className="relative flex flex-col items-center justify-center w-16 h-12 group"
-                  data-testid={`nav-${item.label.toLowerCase()}`}
+              <Link
+                key={item.path}
+                href={item.path}
+                className="relative flex flex-col items-center justify-center w-16 h-12 group"
+                data-testid={`nav-${item.label.toLowerCase()}`}
+              >
+                <motion.div
+                  className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                    isActive 
+                      ? "bg-gradient-to-r from-emotion-happiness to-emotion-excitement text-white" 
+                      : "text-muted-foreground hover:text-foreground hover-elevate"
+                  }`}
+                  whileTap={{ scale: 0.9 }}
                 >
+                  <Icon className="h-5 w-5" />
+                </motion.div>
+                <span className={`text-xs mt-0.5 font-medium transition-colors ${
+                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                }`}>
+                  {item.label}
+                </span>
+                
+                {isActive && (
                   <motion.div
-                    className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
-                      isActive 
-                        ? "bg-gradient-to-r from-emotion-happiness to-emotion-excitement text-white" 
-                        : "text-muted-foreground hover:text-foreground hover-elevate"
-                    }`}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </motion.div>
-                  <span className={`text-xs mt-0.5 font-medium transition-colors ${
-                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                  }`}>
-                    {item.label}
-                  </span>
-                  
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-gradient-to-r from-emotion-happiness to-emotion-excitement rounded-full"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </a>
+                    layoutId="activeTab"
+                    className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-gradient-to-r from-emotion-happiness to-emotion-excitement rounded-full"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
               </Link>
             );
           })}
