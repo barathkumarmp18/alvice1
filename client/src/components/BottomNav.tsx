@@ -25,22 +25,33 @@ export function BottomNav() {
               <Link
                 key={item.path}
                 href={item.path}
-                className="relative flex flex-col items-center justify-center w-16 h-12 group"
+                className="relative flex flex-col items-center justify-center w-16 h-14 group"
                 data-testid={`nav-${item.label.toLowerCase()}`}
               >
                 <motion.div
-                  className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                  className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 ${
                     isActive 
-                      ? "bg-gradient-to-r from-emotion-happiness to-emotion-excitement text-white" 
-                      : "text-muted-foreground hover:text-foreground hover-elevate"
+                      ? "bg-gradient-to-r from-emotion-happiness to-emotion-excitement shadow-lg shadow-emotion-happiness/30" 
+                      : "bg-transparent hover:bg-muted/50"
                   }`}
                   whileTap={{ scale: 0.9 }}
+                  animate={{ scale: isActive ? 1.05 : 1 }}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon 
+                    className={`h-5 w-5 transition-colors duration-200 ${
+                      isActive 
+                        ? "text-white" 
+                        : "text-muted-foreground group-hover:text-foreground"
+                    }`} 
+                  />
                 </motion.div>
-                <span className={`text-xs mt-0.5 font-medium transition-colors ${
-                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                }`}>
+                <span 
+                  className={`text-xs mt-1 font-medium transition-all duration-200 ${
+                    isActive 
+                      ? "text-foreground font-semibold" 
+                      : "text-muted-foreground group-hover:text-foreground"
+                  }`}
+                >
                   {item.label}
                 </span>
                 

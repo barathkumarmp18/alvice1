@@ -3,9 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
-// A simple component for Google Sign-In button
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
     <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.802 9.92C34.553 6.08 29.613 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
@@ -21,7 +20,7 @@ interface AddAccountModalProps {
 }
 
 export default function AddAccountModal({ isOpen, onClose }: AddAccountModalProps) {
-  const { linkWithGoogle } = useAuth();
+  const { linkWithGoogle, refreshLinkedAccounts } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +29,11 @@ export default function AddAccountModal({ isOpen, onClose }: AddAccountModalProp
     try {
       const success = await linkWithGoogle();
       if (success) {
-        toast({ title: 'Account linked successfully via Google!' });
+        await refreshLinkedAccounts();
+        toast({ 
+          title: 'Account linked successfully!',
+          description: 'The new account has been added to your profile.'
+        });
         onClose();
       }
     } catch (error: any) {
@@ -47,7 +50,7 @@ export default function AddAccountModal({ isOpen, onClose }: AddAccountModalProp
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
           onClick={onClose}
         >
           <motion.div
@@ -74,7 +77,12 @@ export default function AddAccountModal({ isOpen, onClose }: AddAccountModalProp
                 disabled={loading}
                 data-testid="button-link-google"
               >
-                {loading ? 'Linking...' : (
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Linking account...
+                  </>
+                ) : (
                   <>
                     <GoogleIcon />
                     Link Google Account
